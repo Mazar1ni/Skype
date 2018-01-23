@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Icons/Settings.png</file>
+        <file>Icons/standart_icon.png</file>
+        <file>Icons/call_icon.png</file>
+        <file>Icons/chat_icon.png</file>
+        <file>Icons/email_icon.png</file>
+        <file>Icons/video_off_icon.png</file>
+        <file>Icons/video_on_icon.png</file>
+        <file>Icons/call_end_icon.png</file>
+        <file>Sound/newMessage.wav</file>
+    </qresource>
+</RCC>
