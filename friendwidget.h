@@ -11,8 +11,8 @@ public:
     FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph, QString st, QString um, QWidget *parent = nullptr);
 
     void updateStatus(QString stat);
-    void updateUnreadMessages();
-    void clearUnreadMessages();
+    void newUnreadMessages();
+    void readUnreadMessages();
     int getCountUnreadMessages() const;
 
 private:

@@ -26,13 +26,13 @@ Message::Message(QString message, QString time, side s, QWidget *parent): QWidge
 
     messageL->setAlignment(Qt::AlignCenter);
 
-    //messageL->setMinimumHeight(messageL->minimumSizeHint().height() + 10);
+    messageL->setWordWrap(true);
 
     messageL->setStyleSheet("QLabel{ color:#fff; background:#2e3e4e; border-radius:5px;"
                             "padding-left: 3px; padding-right: 3px;"
                             "padding-bottom: 3px; padding-top: 3px;}");
 
-    QHBoxLayout* mainHBox = new QHBoxLayout(this);
+    mainHBox = new QHBoxLayout(this);
 
     mainHBox->setMargin(5);
 
@@ -50,9 +50,15 @@ Message::Message(QString message, QString time, side s, QWidget *parent): QWidge
         mainHBox->addWidget(timeL);
         mainHBox->addWidget(messageL);
     }
+    mainHBox->sizeHint().height();
 }
 
 int Message::sizeMessageL()
 {
-    return messageL->height();
+    return mainHBox->sizeHint().height();
+}
+
+QString Message::getMessage() const
+{
+    return messageL->text();
 }

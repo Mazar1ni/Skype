@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QLabel>
 
+class QHBoxLayout;
+
 class Message : public QWidget
 {
     Q_OBJECT
@@ -13,8 +15,11 @@ public:
 
     int sizeMessageL();
 
+    QString getMessage() const;
+
 private:
-     QLabel* messageL;
+    QLabel* messageL;
+    QHBoxLayout* mainHBox;
 
 };
 

@@ -9,6 +9,7 @@
 #include <QtMultimedia/QAudioOutput>
 #include <QIODevice>
 #include <QScrollArea>
+#include <QDate>
 
 class Sox;
 class FriendWidget;
@@ -26,6 +27,7 @@ public:
     void createSettingRoomWidget();
     void upCalling(QString name, QString pass);
     void noUpCalling(QString name, QString pass);
+    void cleanLayout(QLayout *layout);
 
 signals:
     void startRecord();
@@ -40,10 +42,10 @@ private slots:
     void CreateRoom();
     void OpenRoom();
     void SlotReadyRead();
-    void SlotSendAudioToServer();
     void clickedFriendWidget(FriendWidget* friendW);
     void clickedCallButton();
     void clickedSendMessageButton();
+    void requestNewMessage(int value);
 
 private:
 
@@ -74,7 +76,12 @@ private:
     bool isCreatedRoom = false;
     bool isOpenedRoom = false;
 
+    bool isScrolling;
+
+    QString numberBlockMessage = "1";
+
     Sox* sox;
+    QDate Date;
 
     QMediaPlayer* player;
 

@@ -13,6 +13,7 @@
 #include <QMediaPlayer>
 #include <QScrollBar>
 #include <QTimer>
+#include <QDate>
 #include "sox.h"
 #include "message.h"
 
@@ -254,41 +255,157 @@ void MainWindow::SlotReadyRead()
     {
         str.remove(0, 13);
 
-        int pos = str.indexOf("!");
+        static QDate lastDate;
+        bool lastDateBool = false;
+        bool first = false;
 
-        QString time = str.left(pos);
-        str.remove(0, pos+1);
-        pos = str.indexOf("!");
-        QString idChat = str.left(pos);
-        QString message = str.mid(pos+1);
-
-        pos = message.indexOf("/lastMessage/");
-
-        if(pos != -1)
+        while(str != "")
         {
-            if(friendInf->getCountUnreadMessages() != 0)
+            int p = str.indexOf("/!/");
+            QString s = str.left(p);
+
+            int pos = s.indexOf("!");
+
+            QString idFriend = s.left(pos);
+
+            s.remove(0, pos+1);
+
+            pos = s.indexOf("!");
+
+            QString idMessage = s.left(pos);
+
+            s.remove(0, pos+1);
+            pos = s.indexOf("!");
+
+            QString date = s.left(pos);
+
+            s.remove(0, pos+1);
+            pos = s.indexOf("!");
+            QString time = s.left(pos);
+            s.remove(0, pos+1);
+            pos = s.indexOf("!");
+            QString idChat = s.left(pos);
+            QString message = s.mid(pos+1);
+
+            pos = message.indexOf("!");
+            QString status = message.mid(pos+1);
+
+            message = message.left(pos);
+
+            if(numberBlockMessage != "1"
+                    && lastDate == QDate::fromString(date,"dd MMMM yyyy") && lastDateBool == false)
             {
-                friendInf->clearUnreadMessages();
-                SlotSendToServer("/readAllMessages/" + friendInf->id);
+                // удалаем streach
+                if(numberBlockMessage == "2")
+                {
+                    messageVBox->takeAt(0)->widget()->deleteLater();
+                }
+                messageVBox->takeAt(0)->widget()->deleteLater();
+                lastDateBool = true;
             }
-            message.remove(pos, message.count());
-        }
 
-        if(idChat == id)
-        {
-            Message* m = new Message(message, time, Message::right);
-            messageWidgets.append(m);
-            messageVBox->addWidget(m);
-        }
-        else
-        {
-            Message* m = new Message(message, time, Message::left);
-            messageWidgets.append(m);
-            messageVBox->addWidget(m);
-        }
-        QTimer::singleShot(100, this, [this](){
-            scrollarea->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMaximum);});
+            if(lastDateBool == false)
+            {
 
+                lastDate = QDate::fromString(date,"dd MMMM yyyy");
+                lastDateBool = true;
+            }
+
+            if(idChat == id && idFriend == friendInf->id)
+            {
+                Message* m = new Message(message, time, Message::right);
+                if(numberBlockMessage == "1")
+                {
+                    if(messageVBox->count() == 0 || Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    {
+                        messageVBox->addWidget(new QLabel(date));
+                        Date = QDate::fromString(date,"dd MMMM yyyy");
+                    }
+                    messageWidgets.append(m);
+                    messageVBox->addWidget(m);
+                }
+                else
+                {
+                    if(Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    {
+                        if(first == true)
+                        {
+                            messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
+                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
+                                                                      + 13);
+                            first = false;
+                        }
+                        else if(first == false)
+                        {
+                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            first = true;
+                        }
+                    }
+                    messageWidgets.push_front(m);
+                    messageVBox->insertWidget(0, m);
+                    scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
+                                                              + m->sizeMessageL());
+                }
+            }
+            else if(idChat == friendInf->id && idFriend == id)
+            {
+                Message* m = new Message(message, time, Message::left);
+                if(numberBlockMessage == "1")
+                {
+                    if(messageVBox->count() == 0 || Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    {
+                        messageVBox->addWidget(new QLabel(date));
+                        Date = QDate::fromString(date,"dd MMMM yyyy");
+                    }
+                    messageWidgets.append(m);
+                    messageVBox->addWidget(m);
+                }
+                else
+                {
+                    if(Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    {
+                        if(first == true)
+                        {
+                            messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
+                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
+                                                                      + 13);
+                            first = false;
+                        }
+                        else if(first == false)
+                        {
+                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            first = true;
+                        }
+                    }
+                    messageWidgets.push_front(m);
+                    messageVBox->insertWidget(0, m);
+                    scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
+                                                              + m->sizeMessageL());
+                }
+                if(status == "1")
+                {
+                    friendInf->readUnreadMessages();
+                    SlotSendToServer("/readUnreadMessages/" + idMessage + "!"  + friendInf->id);
+                    QThread::msleep(15);
+                }
+            }
+            if(isScrolling == true)
+            {
+                QTimer::singleShot(100, this, [this](){
+                    scrollarea->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMaximum);});
+            }
+
+            str.remove(0, p+3);
+            if(numberBlockMessage != "1" && str == "")
+            {
+                Date = QDate::fromString(date,"dd MMMM yyyy");
+                messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
+                scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
+                                                          + 13);
+            }
+        }
     }
 
     if(buffer.indexOf("/newMessage/") != -1)
@@ -302,14 +419,32 @@ void MainWindow::SlotReadyRead()
         buffer.remove(0, pos+1);
         pos = buffer.indexOf("!");
 
+        QString idMessage = buffer.left(pos);
+
+        buffer.remove(0, pos+1);
+        pos = buffer.indexOf("!");
+
+        QString date = buffer.left(pos);
+        buffer.remove(0, pos+1);
+        pos = buffer.indexOf("!");
         QString time = buffer.left(pos);
         buffer.remove(0, pos+1);
         pos = buffer.indexOf("!");
         QString idChat = buffer.left(pos);
         QString message = buffer.mid(pos+1);
 
+        pos = message.indexOf("!");
+        QString status = message.mid(pos+1);
+
+        message = message.left(pos);
+
         if(friendInf != nullptr && (friendInf->id == idSender || id == idSender))
         {
+            if(Date != QDate::fromString(date,"dd MMMM yyyy"))
+            {
+                Date = QDate::fromString(date,"dd MMMM yyyy");
+                messageVBox->addWidget(new QLabel(Date.toString("dd MMMM yyyy")));
+            }
             if(idChat != id)
             {
                 Message* m = new Message(message, time, Message::right);
@@ -322,8 +457,15 @@ void MainWindow::SlotReadyRead()
                 messageWidgets.append(m);
                 messageVBox->addWidget(m);
             }
-            QTimer::singleShot(100, this, [this](){
-                scrollarea->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMaximum);});
+            if(status == "1")
+            {
+                SlotSendToServer("/readUnreadMessages/" + idMessage + "!"  + friendInf->id);
+            }
+            if(isScrolling == true)
+            {
+                QTimer::singleShot(100, this, [this](){
+                    scrollarea->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMaximum);});
+            }
         }
         else
         {
@@ -331,12 +473,15 @@ void MainWindow::SlotReadyRead()
             {
                 if(friendWidgets[i]->id == idSender)
                 {
-                    friendWidgets[i]->updateUnreadMessages();
+                    friendWidgets[i]->newUnreadMessages();
                     break;
                 }
             }
         }
-        player->play();
+        if(idSender != id)
+        {
+            player->play();
+        }
     }
 
     if(buffer.indexOf("/29/") != -1)
@@ -374,28 +519,32 @@ void MainWindow::sendSound(QByteArray buff)
     Socket->write(buff);
 }
 
-void MainWindow::SlotSendAudioToServer()
+void MainWindow::cleanLayout(QLayout* oL)
 {
-    //emit(removeNoise());
+    QLayoutItem *poLI;
+    QLayout *poL;
+    QWidget *poW;
 
-    /*QMetaObject::invokeMethod(sox, "removeNoise", Qt::AutoConnection,
-                              Q_ARG(MainWindow*, this),
-                              Q_ARG(QByteArray, arrBlock))*/;
-
-    //Socket->write(arrBlock);
+    while((poLI = oL->takeAt(0)))
+    {
+        if((poL = poLI->layout()))
+        {
+            cleanLayout(poL);
+            delete poL;
+        }
+        else if((poW = poLI->widget()))
+        {
+            delete poW;
+        }
+    }
 }
 
 void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 {
-    if(friendInf == nullptr)
-    {
-        delete rightVBox->itemAt(0);
-        delete settingRoom;
-    }
-    else
-    {
-        return;
-    }
+    isScrolling = true;
+    numberBlockMessage = "1";
+
+    cleanLayout(rightVBox);
 
     messageWidgets.clear();
 
@@ -432,7 +581,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     videoButton->resize(32, 32);
 
     scrollarea = new QScrollArea();
-    //scrollarea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    connect(scrollarea->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(requestNewMessage(int)));
     scrollarea->setWidgetResizable(true);
     scrollarea->setFrameStyle(QFrame::NoFrame);
 
@@ -448,6 +597,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     lineMessage = new QLineEdit;
     lineMessage->setMaximumHeight(40);
     lineMessage->setMinimumHeight(40);
+    connect(lineMessage, SIGNAL(editingFinished()), this, SLOT(clickedSendMessageButton()));
 
     QPushButton* sendMessage = new QPushButton;
     sendMessage->setIcon(QIcon(":/Icons/chat_icon.png"));
@@ -466,7 +616,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     rightVBox->addWidget(scrollarea);
     rightVBox->addLayout(lineMessageBox);
 
-    SlotSendToServer("/HistoryMessage/" + friendInf->id);
+    SlotSendToServer("/HistoryMessage/" + friendInf->id + "!" + numberBlockMessage);
 }
 
 void MainWindow::clickedCallButton()
@@ -490,8 +640,19 @@ void MainWindow::clickedCallButton()
 
 void MainWindow::clickedSendMessageButton()
 {
-    SlotSendToServer("/message/" + friendInf->id + "!" + lineMessage->text());
-    QThread::msleep(15);
-    SlotSendToServer("/UnreadMessage/" + friendInf->id);
-    lineMessage->clear();
+    if(lineMessage->text() != "")
+    {
+        SlotSendToServer("/message/" + friendInf->id + "!" + lineMessage->text());
+        lineMessage->clear();
+    }
+}
+
+void MainWindow::requestNewMessage(int value)
+{
+    if(value == 0 && messageVBox->count() >= 20)
+    {
+        isScrolling = false;
+        numberBlockMessage = QString::number(numberBlockMessage.toInt() + 1);
+        SlotSendToServer("/HistoryMessage/" + friendInf->id + "!" + numberBlockMessage);
+    }
 }

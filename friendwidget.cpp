@@ -43,18 +43,21 @@ void FriendWidget::updateStatus(QString stat)
     profileStatus->setText(status);
 }
 
-void FriendWidget::updateUnreadMessages()
+void FriendWidget::newUnreadMessages()
 {
     countUnreadMessages++;
     profileUnreadMessages->setText(QString::number(countUnreadMessages));
     profileUnreadMessages->setVisible(true);
 }
 
-void FriendWidget::clearUnreadMessages()
+void FriendWidget::readUnreadMessages()
 {
-    countUnreadMessages = 0;
-    profileUnreadMessages->clear();
-    profileUnreadMessages->setVisible(false);
+    countUnreadMessages--;
+    if(countUnreadMessages == 0)
+    {
+        profileUnreadMessages->clear();
+        profileUnreadMessages->setVisible(false);
+    }
 }
 
 void FriendWidget::mousePressEvent(QMouseEvent *event)
