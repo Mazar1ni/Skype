@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QTime>
+#include <QIcon>
 
 class FriendWidget : public QWidget
 {
@@ -14,22 +16,40 @@ public:
     void newUnreadMessages();
     void readUnreadMessages();
     int getCountUnreadMessages() const;
+    QString getLogin() const;
+    QString getName() const;
+    QIcon getProfileIcon() const;
+    bool getCallStatus() const;
+    void setCallStatus(bool value);
+    bool getVideoStatus() const;
+    void setVideoStatus(bool value);
+    QTime getTimeCall() const;
+
+public slots:
+    void incrementTimeSec();
 
 private:
     void mousePressEvent(QMouseEvent *event);
 
 signals:
     void clicked(FriendWidget*);
+    void updateTimeCall(QString);
 
 public:
     QString id;
     QString login;
     QString email;
-    QString fio;
+    QString name;
     QString phone;
     QString status;
     QLabel* profileStatus;
     QLabel* profileUnreadMessages;
+    QLabel* profileIcon;
+    QTime timeCall;
+    QTimer* timer;
+    QIcon icon;
+    bool callStatus = false;
+    bool videoStatus = false;
     int countUnreadMessages = 0;
 };
 

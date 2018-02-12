@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui multimedia network
+QT       += core gui multimedia network multimediawidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -56,7 +56,8 @@ SOURCES += \
     friendwidget.cpp \
     calling.cpp \
     sox.cpp \
-    message.cpp
+    message.cpp \
+    webcam.cpp
 
 HEADERS += \
     UI/widget.h \
@@ -67,7 +68,8 @@ HEADERS += \
     friendwidget.h \
     calling.h \
     sox.h \
-    message.h
+    message.h \
+    webcam.h
 
 RESOURCES += \
     Resources/resources.qrc

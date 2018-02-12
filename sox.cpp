@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QtMultimedia/QAudioFormat>
 
-Sox::Sox(QTcpSocket *soc, QObject *parent) : QObject(parent), socket(soc)
+Sox::Sox(QObject *parent) : QObject(parent)
 {
     // настройка аудио
     Format.setSampleRate(4000);
@@ -18,6 +18,10 @@ Sox::Sox(QTcpSocket *soc, QObject *parent) : QObject(parent), socket(soc)
 
 void Sox::removeNoise()
 {
+    if(isTransmit == false)
+    {
+        return;
+    }
     QByteArray  arrBlock;
     arrBlock = DeviceInput->readAll();
 
@@ -110,10 +114,11 @@ void Sox::removeNoise()
 void Sox::startRecord()
 {
     DeviceInput = AudioInput->start();
+    isTransmit = true;
     connect(DeviceInput, SIGNAL(readyRead()), this, SLOT(removeNoise()));
 }
 
 void Sox::stopRecord()
 {
-    DeviceInput = nullptr;
+    isTransmit = false;
 }

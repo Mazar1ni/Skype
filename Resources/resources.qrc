@@ -9,5 +9,7 @@
         <file>Icons/video_on_icon.png</file>
         <file>Icons/call_end_icon.png</file>
         <file>Sound/newMessage.wav</file>
+        <file>Icons/micro_off_icon.png</file>
+        <file>Icons/micro_on_icon.png</file>
     </qresource>
 </RCC>

@@ -2,24 +2,18 @@
 #include <QPushButton>
 #include <QLabel>
 
-calling::calling(QString str, MainWindow* parentW) : parent(parentW)
+calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(parentW), nameRoom(name), pass(passRoom)
 {
 
     setMinimumSize(500, 70);
 
-    int pos = str.indexOf(" ");
+    int pos = name.left(pos).indexOf("-");
 
-    pass = str.mid(pos+1);
+    QString nameFriend = name.left(pos);
 
-    nameRoom = str.left(pos);
-
-    pos = str.left(pos).indexOf("-");
-
-    QString name = str.left(pos);
-
-    QLabel* passRoomLabel = new QLabel(this);
-    passRoomLabel->setText(name);
-    passRoomLabel->move(15, 15);
+    QLabel* nameRoomLabel = new QLabel(this);
+    nameRoomLabel->setText(nameFriend);
+    nameRoomLabel->move(15, 15);
 
     QPushButton* callButton = new QPushButton(this);
     callButton->setIcon(QIcon(":/Icons/call_icon.png"));

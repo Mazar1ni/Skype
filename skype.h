@@ -6,6 +6,7 @@
 
 class MainWindow;
 class Sox;
+class WebCam;
 
 class Skype : public QObject
 {
@@ -22,6 +23,8 @@ private:
     MainWindow* Main;
     Sox* sox;
     QThread thread;
+    QThread threadWebCam;
+    WebCam* webCam;
 
 };
 

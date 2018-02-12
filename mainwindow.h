@@ -10,17 +10,21 @@
 #include <QIODevice>
 #include <QScrollArea>
 #include <QDate>
+#include <QCloseEvent>
 
 class Sox;
 class FriendWidget;
 class Message;
 class QMediaPlayer;
+class WebCam;
+
+class QLabel;
 
 class MainWindow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MainWindow(QTcpSocket* Sock, QString str, Sox* Sox, QWidget *parent = nullptr);
+    explicit MainWindow(QTcpSocket* Sock, QString str, Sox* Sox, WebCam* wb, QWidget *parent = nullptr);
 
     void SlotSendToServer(QString str);
     void gettingFriends(QString str);
@@ -28,15 +32,22 @@ public:
     void upCalling(QString name, QString pass);
     void noUpCalling(QString name, QString pass);
     void cleanLayout(QLayout *layout);
+    void createCallWidget();
+    void createMainFriendWidget();
+    void closeEvent(QCloseEvent *event);
+    void imgWin(QByteArray buff);
+    void turnVideoBroadcast(int idSender, bool onOff);
 
 signals:
     void startRecord();
     void output(QByteArray buffer);
     void stopRecord();
     void removeNoise();
+    void startRecordVideo();
 
 public slots:
     void sendSound(QByteArray buff);
+    void sendCamera(QByteArray buff);
 
 private slots:
     void CreateRoom();
@@ -46,15 +57,15 @@ private slots:
     void clickedCallButton();
     void clickedSendMessageButton();
     void requestNewMessage(int value);
+    void endCall();
+    void clickedMicroButton();
+    void clickedVideoButton();
 
 private:
-
     QString id;
     QString login;
     QString email;
-    QString fam;
     QString name;
-    QString otch;
     QString phone;
 
     QVBoxLayout* messageVBox;
@@ -77,6 +88,8 @@ private:
     bool isOpenedRoom = false;
 
     bool isScrolling;
+    bool isMicro = true;
+    bool isVideo = false;
 
     QString numberBlockMessage = "1";
 
@@ -88,6 +101,12 @@ private:
     QList<Message*> messageWidgets;
 
     QScrollArea *scrollarea;
+    WebCam* webCam;
+    QLabel* cam;
+    QByteArray video;
+
+    QHBoxLayout* camAndIconLayout;
+    QLabel* iconFriend;
 
 };
 

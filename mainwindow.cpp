@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "friendwidget.h"
 #include "calling.h"
+#include "sox.h"
+#include "message.h"
+#include "webcam.h"
 #include <QApplication>
 #include <QPushButton>
 #include <QMessageBox>
@@ -14,31 +17,23 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QDate>
-#include "sox.h"
-#include "message.h"
+#include <QBuffer>
 
-MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, QWidget *parent)
-    : QWidget(parent), Socket(Sock), sox(Sox)
+MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWidget *parent)
+    : QWidget(parent), Socket(Sock), sox(Sox), webCam(wb)
 {
+    video.clear();
     // оформление окна
     resize(900, 600);
     setMinimumSize(800, 450);
 
-    std::istringstream ist(str.toStdString());
-    std::string tmp;
-    QStringList list;
-    while (ist >> tmp)
-    {
-        list << QString::fromUtf8(tmp.c_str());;
-    }
+    QStringList list = str.split("!");
 
     id = list[0];
     login = list[1];
     email = list[2];
-    fam = list[3];
-    name = list[4];
-    otch = list[5];
-    phone = list[6];
+    name = list[3];
+    phone = list[4];
 
     QWidget* profileWidget = new QWidget;
     profileWidget->setMaximumSize(200, 110);
@@ -47,7 +42,7 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, QWidget *parent)
     profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(64, 64));
 
     QLabel* profileName = new QLabel(profileWidget);
-    profileName->setText(login);
+    profileName->setText(name);
     profileName->move(70, 15);
 
     QLabel* profileStatus = new QLabel(profileWidget);
@@ -121,44 +116,35 @@ void MainWindow::SlotSendToServer(QString str)
 
 void MainWindow::gettingFriends(QString str)
 {
-    std::istringstream ist(str.toStdString());
-    std::string tmp;
-    QStringList list;
-    while (ist >> tmp)
-    {
-        list << QString::fromUtf8(tmp.c_str());;
-    }
+    QStringList list = str.split("!");
 
     /*
     list[0] - id
     list[1] - login
     list[2] - email
-    list[3] - F
-    list[4] - I
-    list[5] - O
-    list[6] - Phone
-    list[7] - Status
-    list[8] - Under Messages
+    list[3] - name
+    list[4] - Phone
+    list[5] - Status
+    list[6] - Under Messages
     */
 
-    if(list[7] == "0")
+    if(list[5] == "0")
     {
-        list[7] = "offline";
+        list[5] = "offline";
     }
     else
     {
-        list[7] = "online";
+        list[5] = "online";
     }
 
     FriendWidget* friendWidget = new FriendWidget(list[0], list[1],
-            list[2] + " " + list[3] + " "  + list[4], list[5], list[6], list[7], list[8]);
+            list[2], list[3], list[4], list[5], list[6]);
 
     friendsVBox->addWidget(friendWidget, Qt::AlignTop);
 
     friendWidgets.append(friendWidget);
 
     connect(friendWidget, SIGNAL(clicked(FriendWidget*)), this, SLOT(clickedFriendWidget(FriendWidget*)));
-
 }
 
 void MainWindow::createSettingRoomWidget()
@@ -198,8 +184,113 @@ void MainWindow::createSettingRoomWidget()
 
 void MainWindow::upCalling(QString name, QString pass)
 {
+    for(int i = 0; i < friendWidgets.count(); i++)
+    {
+        if(friendWidgets.at(i)->getCallStatus() == true)
+        {
+            QMessageBox::critical(NULL,QObject::tr("Error"),
+                                  "Unable to start a new call because another call has already been initiated");
+            return;
+        }
+    }
+    int pos = name.indexOf("-");
+
+    QString nameFriend = name.left(pos);
+
+    if(friendInf == nullptr || nameFriend != friendInf->getLogin())
+    {
+        for(int i = 0; i < friendWidgets.count(); i++)
+        {
+            if(nameFriend == friendWidgets[i]->getLogin())
+            {
+                clickedFriendWidget(friendWidgets[i]);
+                QThread::msleep(30);
+                break;
+            }
+        }
+    }
+
     SlotSendToServer("/30/" + name + ":" + pass);
     isOpenedRoom = true;
+    startRecord();
+    DeviceOutput = AudioOutput->start();
+
+    friendInf->setCallStatus(true);
+
+    createCallWidget();
+
+    SlotSendToServer("/beginnigCall/" + friendInf->id);
+
+}
+
+void MainWindow::endCall()
+{
+    QString idFr;
+
+    for(int i = 0; i < friendWidgets.count(); i++)
+    {
+        if(friendWidgets.at(i)->getCallStatus() == true)
+        {
+            idFr = friendWidgets.at(i)->id;
+            SlotSendToServer("/message/" + friendWidgets.at(i)->id + "!" + "/endingCall/"  +
+                             friendWidgets.at(i)->getTimeCall().toString("hh:mm:ss"));
+            friendWidgets.at(i)->setCallStatus(false);
+            friendWidgets.at(i)->setVideoStatus(false);
+            break;
+        }
+    }
+
+    QThread::msleep(15);
+
+    SlotSendToServer("/endingCall/" + idFr);
+
+    if(friendInf->id == idFr)
+    {
+        cleanLayout(rightVBox->itemAt(0)->layout());
+        createMainFriendWidget();
+    }
+
+    isOpenedRoom = false;
+    isCreatedRoom = false;
+    QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+    QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+
+    QThread::msleep(30);
+
+    SlotSendToServer("/endCall/");
+}
+
+void MainWindow::clickedMicroButton()
+{
+    if(isMicro == true)
+    {
+        dynamic_cast<QPushButton*>(QObject::sender())->setIcon(QIcon(":/Icons/micro_off_icon.png"));
+        QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+    }
+    else
+    {
+        dynamic_cast<QPushButton*>(QObject::sender())->setIcon(QIcon(":/Icons/micro_on_icon.png"));
+        startRecord();
+    }
+
+    isMicro ? isMicro = false : isMicro = true;
+}
+
+void MainWindow::clickedVideoButton()
+{
+    if(isVideo == true)
+    {
+        dynamic_cast<QPushButton*>(QObject::sender())->setIcon(QIcon(":/Icons/video_off_icon.png"));
+        QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+        SlotSendToServer("/stopRecordVideo/" + id);
+    }
+    else
+    {
+        dynamic_cast<QPushButton*>(QObject::sender())->setIcon(QIcon(":/Icons/video_on_icon.png"));
+        SlotSendToServer("/startRecordVideo/" + id);
+        startRecordVideo();
+    }
+    isVideo ? isVideo = false : isVideo = true;
 }
 
 void MainWindow::noUpCalling(QString name, QString pass)
@@ -238,20 +329,41 @@ void MainWindow::SlotReadyRead()
         buffer.remove(0, 4);
         DeviceOutput->write(buffer);
     }
-
-    if(str.indexOf("/9/") != -1)
+    else if(buffer.indexOf("/camera/") != -1)
+    {
+        video = buffer;
+    }
+    else if(buffer.indexOf("/end/") != -1)
+    {
+        video += buffer;
+        video.remove(0, 8);
+        video.remove(video.size() - 6, 5);
+        imgWin(video);
+        video.clear();
+    }
+    else if(buffer.indexOf("/startRecordVideo/") != -1)
+    {
+        buffer.remove(0, 18);
+        // P.S. buffer - это id отправителя
+        turnVideoBroadcast(buffer.toInt(), true);
+    }
+    else if(buffer.indexOf("/stopRecordVideo/") != -1)
+    {
+        buffer.remove(0, 17);
+        // P.S. buffer - это id отправителя
+        turnVideoBroadcast(buffer.toInt(), false);
+    }
+    else if(str.indexOf("/9/") != -1)
     {
         startRecord();
     }
-
-    if(str.indexOf("/5/") != -1)
+    else if(str.indexOf("/5/") != -1)
     {
         str.remove(0, 3);
 
         gettingFriends(str);
     }
-
-    if(str.indexOf("/getMessages/") != -1)
+    else if(str.indexOf("/getMessages/") != -1)
     {
         str.remove(0, 13);
 
@@ -259,43 +371,24 @@ void MainWindow::SlotReadyRead()
         bool lastDateBool = false;
         bool first = false;
 
-        while(str != "")
+        QStringList list = str.split("/!/");
+
+        for(int i = 0; i < list.count() - 1; i++)
         {
-            int p = str.indexOf("/!/");
-            QString s = str.left(p);
+            QStringList listMessage = list[i].split("!");
 
-            int pos = s.indexOf("!");
-
-            QString idFriend = s.left(pos);
-
-            s.remove(0, pos+1);
-
-            pos = s.indexOf("!");
-
-            QString idMessage = s.left(pos);
-
-            s.remove(0, pos+1);
-            pos = s.indexOf("!");
-
-            QString date = s.left(pos);
-
-            s.remove(0, pos+1);
-            pos = s.indexOf("!");
-            QString time = s.left(pos);
-            s.remove(0, pos+1);
-            pos = s.indexOf("!");
-            QString idChat = s.left(pos);
-            QString message = s.mid(pos+1);
-
-            pos = message.indexOf("!");
-            QString status = message.mid(pos+1);
-
-            message = message.left(pos);
+            QString idFriend = listMessage[0];
+            QString idMessage = listMessage[1];
+            QString date = listMessage[2];
+            QString time = listMessage[3];
+            QString idChat = listMessage[4];
+            QString message = listMessage[5];
+            QString status = listMessage[6];
 
             if(numberBlockMessage != "1"
                     && lastDate == QDate::fromString(date,"dd MMMM yyyy") && lastDateBool == false)
             {
-                // удалаем streach
+                // удаляем streach
                 if(numberBlockMessage == "2")
                 {
                     messageVBox->takeAt(0)->widget()->deleteLater();
@@ -309,6 +402,25 @@ void MainWindow::SlotReadyRead()
 
                 lastDate = QDate::fromString(date,"dd MMMM yyyy");
                 lastDateBool = true;
+            }
+
+            if(message == "/beginningCall/")
+            {
+                if(idChat == id)
+                {
+                    message = name + " " + QString::fromLocal8Bit("начал разговор");
+                }
+                else
+                {
+                    message = friendInf->getName() + " " + QString::fromLocal8Bit("начал разговор");
+                }
+            }
+
+            if(message.indexOf("/endingCall/") != -1)
+            {
+                message.remove(0, 12);
+
+                message = QString::fromLocal8Bit("Звонок завершен. Продолжительность: ") + message;
             }
 
             if(idChat == id && idFriend == friendInf->id)
@@ -397,8 +509,7 @@ void MainWindow::SlotReadyRead()
                     scrollarea->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMaximum);});
             }
 
-            str.remove(0, p+3);
-            if(numberBlockMessage != "1" && str == "")
+            if(numberBlockMessage != "1" && i + 1 == list.count() - 1)
             {
                 Date = QDate::fromString(date,"dd MMMM yyyy");
                 messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
@@ -407,36 +518,43 @@ void MainWindow::SlotReadyRead()
             }
         }
     }
-
-    if(buffer.indexOf("/newMessage/") != -1)
+    else if(str.indexOf("/newMessage/") != -1)
     {
-        buffer.remove(0, 12);
+        str.remove(0, 12);
 
-        int pos = buffer.indexOf("!");
+        QStringList list = str.split("!");
 
-        QString idSender = buffer.left(pos);
+        QString idSender = list[0];
+        QString idMessage = list[1];
+        QString date = list[2];
+        QString time = list[3];
+        QString idChat = list[4];
+        QString message = list[5];
+        QString status;
 
-        buffer.remove(0, pos+1);
-        pos = buffer.indexOf("!");
+        if(list.count() == 7)
+        {
+            status = list[6];
+        }
 
-        QString idMessage = buffer.left(pos);
+        if(message == "/beginningCall/")
+        {
+            if(idSender == id)
+            {
+                message = name + " " + QString::fromLocal8Bit("начал разговор");
+            }
+            else
+            {
+                message = friendInf->getName() + " " + QString::fromLocal8Bit("начал разговор");
+            }
+        }
 
-        buffer.remove(0, pos+1);
-        pos = buffer.indexOf("!");
+        if(message.indexOf("/endingCall/") != -1)
+        {
+            message.remove(0, 12);
 
-        QString date = buffer.left(pos);
-        buffer.remove(0, pos+1);
-        pos = buffer.indexOf("!");
-        QString time = buffer.left(pos);
-        buffer.remove(0, pos+1);
-        pos = buffer.indexOf("!");
-        QString idChat = buffer.left(pos);
-        QString message = buffer.mid(pos+1);
-
-        pos = message.indexOf("!");
-        QString status = message.mid(pos+1);
-
-        message = message.left(pos);
+            message = QString::fromLocal8Bit("Звонок завершен. Продолжительность: ") + message;
+        }
 
         if(friendInf != nullptr && (friendInf->id == idSender || id == idSender))
         {
@@ -483,40 +601,142 @@ void MainWindow::SlotReadyRead()
             player->play();
         }
     }
-
-    if(buffer.indexOf("/29/") != -1)
+    else if(str.indexOf("/29/") != -1)
     {
-        buffer.remove(0, 4);
+        str.remove(0, 4);
 
-        calling* callWidget = new calling(buffer, this);
+        QStringList list = str.split("!");
+
+        QString nameRoom = list[0];
+
+        calling* callWidget = new calling(nameRoom,  list[1], this);
         callWidget->show();
     }
-
-    if(buffer.indexOf("/33/") != -1)
+    else if(str.indexOf("/33/") != -1)
     {
-        buffer.remove(0, 4);
-        int pos = buffer.indexOf(":");
+        str.remove(0, 4);
+        QStringList list = str.split(":");
 
-        foreach (FriendWidget* friendW, friendWidgets) {
-            if(friendW->id == buffer.left(pos))
+        foreach (FriendWidget* friendW, friendWidgets)
+        {
+            if(friendW->id == list[0])
             {
-                friendW->updateStatus(buffer.mid(pos + 1));
+                friendW->updateStatus(list[1]);
+                if(friendInf != nullptr && friendInf == friendW)
+                {
+                    dynamic_cast<QLabel*>(mainScreenWithButtons->children().back())->setText(list[1]);
+                }
             }
         }
     }
-
-    if(buffer.indexOf("/outoftheroom/") != -1)
+    else if(str.indexOf("/beginnigCall/") != -1)
     {
-        isCreatedRoom = false;
-        stopRecord();
-        DeviceOutput = nullptr;
-    }
+        str.remove(0, 14);
 
+        if(friendInf->id == str)
+        {
+            createCallWidget();
+            friendInf->setCallStatus(true);
+        }
+        else
+        {
+            for(int i = 0; i < friendWidgets.count(); i++)
+            {
+                if(friendWidgets[i]->id == str)
+                {
+                    friendWidgets[i]->setCallStatus(true);
+                    clickedFriendWidget(friendWidgets[i]);
+                }
+            }
+        }
+
+        SlotSendToServer("/message/" + friendInf->id + "!" + "/beginningCall/");
+    }
+    else if(buffer.indexOf("/outoftheroom/") != -1)
+    {  
+        for(int i = 0; i < friendWidgets.count(); i++)
+        {
+            if(friendWidgets.at(i)->getCallStatus() == true)
+            {
+                friendWidgets.at(i)->setCallStatus(false);
+                friendWidgets.at(i)->setVideoStatus(false);
+                clickedFriendWidget(friendWidgets.at(i));
+            }
+        }
+        isOpenedRoom = false;
+        isCreatedRoom = false;
+        QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+        QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+    }
+    else
+    {
+        video += buffer;
+    }
 }
 
 void MainWindow::sendSound(QByteArray buff)
 {
     Socket->write(buff);
+}
+
+void MainWindow::sendCamera(QByteArray buff)
+{
+    Socket->write(buff);
+}
+
+void MainWindow::imgWin(QByteArray buff)
+{
+    if(friendInf->getVideoStatus() == true)
+    {
+        QDataStream ds(&buff, QIODevice::ReadOnly);
+
+        int format = - 1;
+        int bytesCount = -1;
+        int width = 0;
+        int height = 0;
+
+        ds >> format;
+        ds >> bytesCount;
+        ds >> width;
+        ds >> height;
+        uchar bytes[bytesCount];
+        ds.readRawData((char*)bytes, bytesCount);
+
+        QImage img(bytes, width, height, (QImage::Format)format);
+
+        cam->resize(img.size());
+        cam->setPixmap(QPixmap::fromImage(img));
+        cam->update();
+    }
+}
+
+void MainWindow::turnVideoBroadcast(int idSender, bool onOff)
+{
+    for(int i = 0; i < friendWidgets.count(); i++)
+    {
+        if(friendWidgets.at(i)->id.toInt() == idSender)
+        {
+            friendWidgets.at(i)->setVideoStatus(onOff);
+            break;
+        }
+    }
+
+    if(friendInf->id.toInt() == idSender)
+    {
+        cleanLayout(camAndIconLayout);
+        if(onOff == true)
+        {
+            cam = new QLabel;
+            camAndIconLayout->addWidget(cam, Qt::AlignCenter);
+        }
+        else
+        {
+            iconFriend = new QLabel;
+            iconFriend->setPixmap(friendInf->getProfileIcon().pixmap(64, 64));
+            iconFriend->setAlignment(Qt::AlignCenter);
+            camAndIconLayout->addWidget(iconFriend, Qt::AlignCenter);
+        }
+    }
 }
 
 void MainWindow::cleanLayout(QLayout* oL)
@@ -539,17 +759,101 @@ void MainWindow::cleanLayout(QLayout* oL)
     }
 }
 
-void MainWindow::clickedFriendWidget(FriendWidget *friendW)
+void MainWindow::createCallWidget()
 {
-    isScrolling = true;
-    numberBlockMessage = "1";
+    // удаляем верхний layout, где информаия о друге и кнопки вызова
+    if(rightVBox->count() > 0)
+    {
+        QLayoutItem *poLI;
 
-    cleanLayout(rightVBox);
+        while((poLI = rightVBox->itemAt(0)->layout()->takeAt(0)))
+        {
+            delete poLI->widget();
+        }
+        delete rightVBox->takeAt(0);
+    }
 
-    messageWidgets.clear();
+    QVBoxLayout* callVBox = new QVBoxLayout;
 
-    friendInf = friendW;
+    QHBoxLayout* buttonsHBox = new QHBoxLayout;
 
+    QWidget* buttons = new QWidget;
+    buttons->setFixedHeight(48);
+
+    buttonsHBox->addWidget(buttons, Qt::AlignCenter);
+
+    QPushButton* microButton = new QPushButton(buttons);
+    if(isMicro == true)
+    {
+        microButton->setIcon(QIcon(":/Icons/micro_on_icon.png"));
+    }
+    else
+    {
+        microButton->setIcon(QIcon(":/Icons/micro_off_icon.png"));
+    }
+    microButton->move(15, 15);
+    microButton->resize(32, 32);
+
+    connect(microButton, SIGNAL(clicked(bool)), this, SLOT(clickedMicroButton()));
+
+    QPushButton* videoButton = new QPushButton(buttons);
+    if(isVideo == true)
+    {
+        videoButton->setIcon(QIcon(":/Icons/video_on_icon.png"));
+    }
+    else
+    {
+        videoButton->setIcon(QIcon(":/Icons/video_off_icon.png"));
+    }
+    videoButton->move(62, 15);
+    videoButton->resize(32, 32);
+
+    connect(videoButton, SIGNAL(clicked(bool)), this, SLOT(clickedVideoButton()));
+
+    QPushButton* callEndButton = new QPushButton(buttons);
+    callEndButton->setIcon(QIcon(":/Icons/call_end_icon.png"));
+    callEndButton->move(109, 15);
+    callEndButton->resize(32, 32);
+
+    connect(callEndButton, SIGNAL(clicked(bool)), this, SLOT(endCall()));
+
+    camAndIconLayout = new QHBoxLayout;
+
+    if(friendInf->getVideoStatus() == true)
+    {
+        cam = new QLabel;
+        camAndIconLayout->addWidget(cam, Qt::AlignCenter);
+    }
+    else
+    {
+        iconFriend = new QLabel;
+        iconFriend->setPixmap(friendInf->getProfileIcon().pixmap(64, 64));
+        iconFriend->setAlignment(Qt::AlignCenter);
+        camAndIconLayout->addWidget(iconFriend, Qt::AlignCenter);
+    }
+
+
+
+    QLabel* friendName = new QLabel(friendInf->getName());
+    friendName->setFixedHeight(15);
+    friendName->setAlignment(Qt::AlignCenter);
+
+    QLabel* timeCall = new QLabel();
+    timeCall->setFixedHeight(15);
+    timeCall->setAlignment(Qt::AlignCenter);
+
+    connect(friendInf, SIGNAL(updateTimeCall(QString)), timeCall, SLOT(setText(QString)));
+
+    callVBox->addLayout(camAndIconLayout, Qt::AlignCenter);
+    callVBox->addWidget(friendName);
+    callVBox->addWidget(timeCall);
+    callVBox->addLayout(buttonsHBox);
+
+    rightVBox->insertLayout(0, callVBox);
+}
+
+void MainWindow::createMainFriendWidget()
+{
     QHBoxLayout* hBox = new QHBoxLayout;
 
     mainScreenWithButtons = new QWidget;
@@ -580,6 +884,45 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     videoButton->move(62, 15);
     videoButton->resize(32, 32);
 
+    hBox->addWidget(mainScreenWithButtons);
+    hBox->addWidget(buttons);
+
+    rightVBox->insertLayout(0, hBox);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    Q_UNUSED(event); // чтоб не ругался на неиспользуемую переменную
+    for(int i = 0; i < friendWidgets.count(); i++)
+    {
+        if(friendWidgets.at(i)->getCallStatus() == true)
+        {
+            endCall();
+            break;
+        }
+    }
+}
+
+void MainWindow::clickedFriendWidget(FriendWidget *friendW)
+{
+    isScrolling = true;
+    numberBlockMessage = "1";
+
+    cleanLayout(rightVBox);
+
+    messageWidgets.clear();
+
+    friendInf = friendW;
+
+    if(friendInf->getCallStatus() == true)
+    {
+        createCallWidget();
+    }
+    else
+    {
+        createMainFriendWidget();
+    }
+
     scrollarea = new QScrollArea();
     connect(scrollarea->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(requestNewMessage(int)));
     scrollarea->setWidgetResizable(true);
@@ -609,10 +952,6 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     lineMessageBox->addWidget(lineMessage);
     lineMessageBox->addWidget(sendMessage);
 
-    hBox->addWidget(mainScreenWithButtons);
-    hBox->addWidget(buttons);
-
-    rightVBox->addLayout(hBox);
     rightVBox->addWidget(scrollarea);
     rightVBox->addLayout(lineMessageBox);
 
@@ -621,6 +960,15 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 
 void MainWindow::clickedCallButton()
 {
+    for(int i = 0; i < friendWidgets.count(); i++)
+    {
+        if(friendWidgets.at(i)->getCallStatus() == true)
+        {
+            QMessageBox::critical(NULL,QObject::tr("Error"),
+                                  "Unable to start a new call because another call has already been initiated");
+            return;
+        }
+    }
     if(friendInf->status == "online")
     {
         SlotSendToServer("/19/" + friendInf->id);

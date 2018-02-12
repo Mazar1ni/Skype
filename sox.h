@@ -14,7 +14,7 @@ class Sox : public QObject
 {
     Q_OBJECT
 public:
-    Sox(QTcpSocket* soc, QObject* parent = nullptr);
+    Sox(QObject* parent = nullptr);
 
 signals:
     void sendSound(QByteArray);
@@ -25,13 +25,13 @@ public slots:
     void stopRecord();
 
 private:
-    int count;
     MainWindow* window;
-    QTcpSocket* socket;
 
     QAudioInput* AudioInput;
     QAudioFormat Format;
     QIODevice* DeviceInput = nullptr;
+
+    bool isTransmit = false;
 };
 
 #endif // SOX_H

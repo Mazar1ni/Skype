@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include <QDebug>
 #include "sox.h"
+#include "webcam.h"
 
 Skype::Skype()
 {
@@ -17,11 +18,15 @@ Skype::Skype()
 
 void Skype::Connected(QString str)
 {
-    sox = new Sox(Socket);
+    sox = new Sox;
     sox->moveToThread(&thread);
     thread.start();
 
-    Main = new MainWindow(Socket, str, sox);
+    webCam = new WebCam;
+    webCam->moveToThread(&threadWebCam);
+    threadWebCam.start();
+
+    Main = new MainWindow(Socket, str, sox, webCam);
     Main->show();
     connect(Main, SIGNAL(removeNoise()),
             sox, SLOT(removeNoise()));
@@ -29,6 +34,10 @@ void Skype::Connected(QString str)
             Main, SLOT(sendSound(QByteArray)));
     connect(Main, SIGNAL(startRecord()),
             sox, SLOT(startRecord()));
-    connect(Main, SIGNAL(stopRecord()),
-            sox, SLOT(stopRecord()));
+
+    connect(Main, SIGNAL(startRecordVideo()),
+            webCam, SLOT(startRecord()));
+    connect(webCam, SIGNAL(sendCamera(QByteArray)),
+            Main, SLOT(sendCamera(QByteArray)));
+
 }

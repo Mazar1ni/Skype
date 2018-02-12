@@ -63,7 +63,7 @@ void Authentication::slotSendToServer()
     QByteArray  arrBlock;
 
     QDataStream out(&arrBlock, QIODevice::WriteOnly);
-    out << textLogin->text() + ":" + textPass->text() + "/1/";
+    out << textLogin->text() + "!" + textPass->text() + "/1/";
 
     Socket->write(arrBlock);
 
@@ -93,8 +93,8 @@ void Authentication::Connect()
             // инифиализаия сокета
             //QHostAddress(text.left(pos))
             Socket->connectToHost("localhost", (qint16)text.mid(pos+1).toInt());
-            AudioSocket = new QTcpSocket(this);
-            AudioSocket->connectToHost("localhost", (qint16)7071);
+//            AudioSocket = new QTcpSocket(this);
+//            AudioSocket->connectToHost("localhost", (qint16)7071);
             in.close();
 
             connect(Socket, SIGNAL(connected()), SLOT(slotConnected()));

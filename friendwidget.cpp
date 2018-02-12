@@ -1,21 +1,23 @@
 #include "friendwidget.h"
 #include <QMouseEvent>
-#include <QIcon>
 #include <QMessageBox>
 #include <QDebug>
+#include <QTimer>
 
 FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f,
                            QString ph, QString st, QString um, QWidget *parent) :
-    QWidget(parent), id(friendsId), login(l), email(em), fio(f),
+    QWidget(parent), id(friendsId), login(l), email(em), name(f),
     phone(ph), status(st), countUnreadMessages(um.toInt())
 {
     setMaximumSize(200, 60);
 
-    QLabel* profileIcon = new QLabel(this);
-    profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(64, 64));
+    icon = QIcon(":/Icons/standart_icon.png");
+
+    profileIcon = new QLabel(this);
+    profileIcon->setPixmap(icon.pixmap(64, 64));
 
     QLabel* profileName = new QLabel(this);
-    profileName->setText(login);
+    profileName->setText(name);
     profileName->move(70, 15);
 
     profileStatus = new QLabel(this);
@@ -34,7 +36,9 @@ FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f,
         profileUnreadMessages->setText(QString::number(countUnreadMessages));
         profileUnreadMessages->setVisible(true);
     }
+    timeCall.setHMS(0, 0, 0);
 
+    timer = new QTimer;
 }
 
 void FriendWidget::updateStatus(QString stat)
@@ -66,6 +70,61 @@ void FriendWidget::mousePressEvent(QMouseEvent *event)
     {
         clicked(this);
     }
+}
+
+bool FriendWidget::getVideoStatus() const
+{
+    return videoStatus;
+}
+
+void FriendWidget::setVideoStatus(bool value)
+{
+    videoStatus = value;
+}
+
+QTime FriendWidget::getTimeCall() const
+{
+    return timeCall;
+}
+
+void FriendWidget::incrementTimeSec()
+{
+    timeCall = timeCall.addSecs(1);
+    updateTimeCall(timeCall.toString("hh:mm:ss"));
+}
+
+bool FriendWidget::getCallStatus() const
+{
+    return callStatus;
+}
+
+void FriendWidget::setCallStatus(bool value)
+{
+    if(value == true)
+    {
+        connect(timer, SIGNAL(timeout()), this, SLOT(incrementTimeSec()));
+        timer->start(1000);
+    }
+    else
+    {
+        timer->stop();
+    }
+    callStatus = value;
+}
+
+QString FriendWidget::getName() const
+{
+    return name;
+}
+
+QIcon FriendWidget::getProfileIcon() const
+{
+    return icon;
+}
+
+QString FriendWidget::getLogin() const
+{
+    return login;
 }
 
 int FriendWidget::getCountUnreadMessages() const

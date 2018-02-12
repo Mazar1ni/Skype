@@ -13,7 +13,7 @@ private slots:
     void noUpCalling();
 
 public:
-    calling(QString str, MainWindow *parentW);
+    calling(QString name, QString passRoom, MainWindow *parentW);
 
 private:
     MainWindow* parent;
