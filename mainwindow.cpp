@@ -4,10 +4,10 @@
 #include "sox.h"
 #include "message.h"
 #include "webcam.h"
+#include "profilewidget.h"
 #include <QApplication>
 #include <QPushButton>
 #include <QMessageBox>
-#include <QLabel>
 #include <QTabWidget>
 #include <sstream>
 #include <QFile>
@@ -18,7 +18,6 @@
 #include <QTimer>
 #include <QDate>
 #include <QBuffer>
-
 MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWidget *parent)
     : QWidget(parent), Socket(Sock), sox(Sox), webCam(wb)
 {
@@ -35,23 +34,14 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     name = list[3];
     phone = list[4];
 
-    QWidget* profileWidget = new QWidget;
-    profileWidget->setMaximumSize(200, 110);
+    profileWidget = new ProfileWidget(name);
+    profileWidget->setMaximumSize(200, 90);
 
-    QLabel* profileIcon = new QLabel(profileWidget);
-    profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(64, 64));
+    connect(profileWidget, SIGNAL(clicked()), this, SLOT(clickedProfileWidget()));
 
-    QLabel* profileName = new QLabel(profileWidget);
-    profileName->setText(name);
-    profileName->move(70, 15);
-
-    QLabel* profileStatus = new QLabel(profileWidget);
-    profileStatus->setText("online");
-    profileStatus->move(70, 35);
-
-    QLineEdit* search = new QLineEdit(profileWidget);
+    QLineEdit* search = new QLineEdit;
     search->resize(150, 20);
-    search->move(10, 80);
+    search->setMaximumWidth(200);
 
     QWidget* friendsWidget = new QWidget;
     friendsWidget->setMaximumSize(200, this->size().height());
@@ -70,6 +60,7 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
 
     QVBoxLayout* leftVBox = new QVBoxLayout;
     leftVBox->addWidget(profileWidget, Qt::AlignTop);
+    leftVBox->addWidget(search, Qt::AlignTop);
     leftVBox->addWidget(listFriendsAndRecent, Qt::AlignTop);
     leftVBox->addStretch();
 
@@ -293,6 +284,185 @@ void MainWindow::clickedVideoButton()
     isVideo ? isVideo = false : isVideo = true;
 }
 
+void MainWindow::clickedProfileWidget()
+{
+    cleanLayout(rightVBox);
+
+    QHBoxLayout* profileHBox = new QHBoxLayout;
+
+    QVBoxLayout* profileLeftVBox = new QVBoxLayout;
+
+    QLabel* profileIcon = new QLabel;
+    profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(256, 256));
+    profileIcon->setMargin(30);
+
+    profileLeftVBox->addWidget(profileIcon);
+    profileLeftVBox->addStretch();
+
+    QVBoxLayout* profileRightVBox = new QVBoxLayout;
+
+    QHBoxLayout* profileNameHBox = new QHBoxLayout;
+
+    QLabel* profileNameLabel = new QLabel("Name:    ");
+
+    QLineEdit* profileName = new QLineEdit;
+    profileName->setText(name);
+
+    profileNameHBox->addStretch();
+    profileNameHBox->addWidget(profileNameLabel);
+    profileNameHBox->addWidget(profileName);
+
+    QHBoxLayout* profileEmailHBox = new QHBoxLayout;
+
+    QLabel* profileEmailLabel = new QLabel("Email:    ");
+
+    QLineEdit* profileEmail = new QLineEdit;
+    profileEmail->setText(email);
+
+    profileEmailHBox->addStretch();
+    profileEmailHBox->addWidget(profileEmailLabel);
+    profileEmailHBox->addWidget(profileEmail);
+
+    QHBoxLayout* profilePhoneHBox = new QHBoxLayout;
+
+    QLabel* profilePhoneLabel = new QLabel("Phone:    ");
+
+    QLineEdit* profilePhone = new QLineEdit;
+    profilePhone->setText(phone);
+
+    profilePhoneHBox->addStretch();
+    profilePhoneHBox->addWidget(profilePhoneLabel);
+    profilePhoneHBox->addWidget(profilePhone);
+
+    QHBoxLayout* profileOldPassHBox = new QHBoxLayout;
+
+    QLabel* profileOldPassLabel = new QLabel("enter old password:    ");
+
+    QLineEdit* profileOldPass = new QLineEdit;
+
+    profileOldPassHBox->addStretch();
+    profileOldPassHBox->addWidget(profileOldPassLabel);
+    profileOldPassHBox->addWidget(profileOldPass);
+
+    QHBoxLayout* profileNewPassHBox = new QHBoxLayout;
+
+    QLabel* profileNewPassLabel = new QLabel("enter new password:    ");
+
+    QLineEdit* profileNewPass = new QLineEdit;
+
+    profileNewPassHBox->addStretch();
+    profileNewPassHBox->addWidget(profileNewPassLabel);
+    profileNewPassHBox->addWidget(profileNewPass);
+
+    QHBoxLayout* profileNewPassAgainHBox = new QHBoxLayout;
+
+    QLabel* profileNewPassAgainLabel = new QLabel("enter new password again:    ");
+
+    QLineEdit* profileNewPassAgain = new QLineEdit;
+
+    profileNewPassAgainHBox->addStretch();
+    profileNewPassAgainHBox->addWidget(profileNewPassAgainLabel);
+    profileNewPassAgainHBox->addWidget(profileNewPassAgain);
+
+    QHBoxLayout* buttonsHBox = new QHBoxLayout;
+    buttonsHBox->setMargin(15);
+
+    QPushButton* saveChangesButton = new QPushButton;
+    saveChangesButton->setFixedSize(84, 24);
+    saveChangesButton->setIcon(QIcon(":/Icons/checkmark_circled_icon.png").pixmap(64, 64));
+
+    connect(saveChangesButton, &QPushButton::clicked, [this, profileName, profileEmail,
+            profilePhone, profileOldPass, profileNewPass, profileNewPassAgain]()
+    {
+        if(this->name != profileName->text() && profileName->text() != "")
+        {
+            SlotSendToServer("/profileInfo/" + ("/name/" + profileName->text()));
+            this->updateInfo("/name/" + profileName->text());
+        }
+
+        if(this->email != profileEmail->text() && profileEmail->text() != "")
+        {
+            SlotSendToServer("/profileInfo/" + ("/email/" + profileEmail->text()));
+            this->updateInfo("/email/" + profileEmail->text());
+        }
+
+        if(this->phone != profilePhone->text() && profilePhone->text() != "")
+        {
+            SlotSendToServer("/profileInfo/" + ("/phone/" + profilePhone->text()));
+            this->updateInfo("/phone/" + profilePhone->text());
+        }
+
+        if(profileOldPass->text() != "")
+        {
+            QString message;
+            message = "/oldPass/" + profileOldPass->text();
+            if(profileNewPass->text() != "")
+            {
+                if(profileNewPass->text() == profileOldPass->text())
+                {
+                    QMessageBox::critical(NULL,QObject::tr("Error"),
+                                          "Old password and new password must not be the same!");
+                    return;
+                }
+
+                if(profileNewPass->text() != profileNewPassAgain->text())
+                {
+                    QMessageBox::critical(NULL,QObject::tr("Error"), "Passwords do not match!");
+                    return;
+                }
+                message += "/newPass/" + profileNewPass->text();
+            }
+            else
+            {
+                QMessageBox::critical(NULL,QObject::tr("Error"), "Fill in all the fields!");
+                return;
+            }
+            SlotSendToServer("/profileInfo/" + ("/changePass/" + message));
+        }
+    });
+
+    QPushButton* canselChangesButton = new QPushButton;
+    canselChangesButton->setFixedSize(84, 24);
+    canselChangesButton->setIcon(QIcon(":/Icons/close_circled_icon.png").pixmap(64, 64));
+
+    connect(canselChangesButton, &QPushButton::clicked, [this, profileName, profileEmail,
+            profilePhone, profileOldPass, profileNewPass, profileNewPassAgain](){
+        profileName->setText(this->name);
+        profileEmail->setText(this->email);
+        profilePhone->setText(this->phone);
+
+        profileNewPass->clear();
+        profileOldPass->clear();
+        profileNewPassAgain->clear();
+    });
+
+    buttonsHBox->addWidget(saveChangesButton);
+    buttonsHBox->addWidget(canselChangesButton);
+    buttonsHBox->addStretch();
+
+    profileRightVBox->addSpacing(80);
+    profileRightVBox->addLayout(profileNameHBox);
+    profileRightVBox->addSpacing(15);
+    profileRightVBox->addLayout(profileEmailHBox);
+    profileRightVBox->addSpacing(15);
+    profileRightVBox->addLayout(profilePhoneHBox);
+    profileRightVBox->addSpacing(15);
+    profileRightVBox->addLayout(profileOldPassHBox);
+    profileRightVBox->addSpacing(15);
+    profileRightVBox->addLayout(profileNewPassHBox);
+    profileRightVBox->addSpacing(15);
+    profileRightVBox->addLayout(profileNewPassAgainHBox);
+    profileRightVBox->addSpacing(15);
+    profileRightVBox->addLayout(buttonsHBox);
+    profileRightVBox->addStretch();
+
+    profileHBox->addLayout(profileLeftVBox);
+    profileHBox->addLayout(profileRightVBox);
+    profileHBox->addStretch();
+
+    rightVBox->addLayout(profileHBox);
+}
+
 void MainWindow::noUpCalling(QString name, QString pass)
 {
     SlotSendToServer("/31/" + name + ":" + pass);
@@ -359,13 +529,13 @@ void MainWindow::SlotReadyRead()
     }
     else if(str.indexOf("/5/") != -1)
     {
-        str.remove(0, 3);
+        str.remove("/5/");
 
         gettingFriends(str);
     }
     else if(str.indexOf("/getMessages/") != -1)
     {
-        str.remove(0, 13);
+        str.remove("/getMessages/");
 
         static QDate lastDate;
         bool lastDateBool = false;
@@ -520,7 +690,7 @@ void MainWindow::SlotReadyRead()
     }
     else if(str.indexOf("/newMessage/") != -1)
     {
-        str.remove(0, 12);
+        str.remove("/newMessage/");
 
         QStringList list = str.split("!");
 
@@ -603,7 +773,7 @@ void MainWindow::SlotReadyRead()
     }
     else if(str.indexOf("/29/") != -1)
     {
-        str.remove(0, 4);
+        str.remove("/29/");
 
         QStringList list = str.split("!");
 
@@ -614,7 +784,7 @@ void MainWindow::SlotReadyRead()
     }
     else if(str.indexOf("/33/") != -1)
     {
-        str.remove(0, 4);
+        str.remove("/33/");
         QStringList list = str.split(":");
 
         foreach (FriendWidget* friendW, friendWidgets)
@@ -631,7 +801,7 @@ void MainWindow::SlotReadyRead()
     }
     else if(str.indexOf("/beginnigCall/") != -1)
     {
-        str.remove(0, 14);
+        str.remove("/beginnigCall/");
 
         if(friendInf->id == str)
         {
@@ -667,6 +837,31 @@ void MainWindow::SlotReadyRead()
         isCreatedRoom = false;
         QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
         QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+    }
+    else if(str.indexOf("/updateFriendInfo/") != -1)
+    {
+        str.remove("/updateFriendInfo/");
+        QStringList list = str.split("!");
+
+        foreach (FriendWidget* friendW, friendWidgets)
+        {
+            if(friendW->id == list[0])
+            {
+                friendW->updateInfo(list[1]);
+                if(friendInf != nullptr && friendInf == friendW)
+                {
+                    dynamic_cast<QLabel*>(mainScreenWithButtons->children().at(mainScreenWithButtons->children().count() - 2))->setText(list[1]);
+                }
+            }
+        }
+    }
+    else if(str.indexOf("/Incorrect password/") != -1)
+    {
+        QMessageBox::critical(NULL,QObject::tr("Error"), "Incorrect password!");
+    }
+    else if(str.indexOf("/Password changed/") != -1)
+    {
+        QMessageBox::information(NULL,QObject::tr("Information"), "Password changed!");
     }
     else
     {
@@ -736,6 +931,28 @@ void MainWindow::turnVideoBroadcast(int idSender, bool onOff)
             iconFriend->setAlignment(Qt::AlignCenter);
             camAndIconLayout->addWidget(iconFriend, Qt::AlignCenter);
         }
+    }
+}
+
+void MainWindow::updateInfo(QString info)
+{
+    if(info.indexOf("/name/") != -1)
+    {
+        info.remove("/name/");
+        name = info;
+        profileWidget->updateName(info);
+    }
+
+    if(info.indexOf("/email/") != -1)
+    {
+        info.remove("/email/");
+        email = info;
+    }
+
+    if(info.indexOf("/phone/") != -1)
+    {
+        info.remove("/phone/");
+        phone = info;
     }
 }
 
@@ -863,7 +1080,7 @@ void MainWindow::createMainFriendWidget()
     profileIconRightWidget->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(64, 64));
 
     QLabel* profileNameRightWidget = new QLabel(mainScreenWithButtons);
-    profileNameRightWidget->setText(friendInf->login);
+    profileNameRightWidget->setText(friendInf->name);
     profileNameRightWidget->move(70, 15);
 
     QLabel* profileStatusRightWidget = new QLabel(mainScreenWithButtons);

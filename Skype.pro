@@ -57,7 +57,8 @@ SOURCES += \
     calling.cpp \
     sox.cpp \
     message.cpp \
-    webcam.cpp
+    webcam.cpp \
+    profilewidget.cpp
 
 HEADERS += \
     UI/widget.h \
@@ -69,7 +70,8 @@ HEADERS += \
     calling.h \
     sox.h \
     message.h \
-    webcam.h
+    webcam.h \
+    profilewidget.h
 
 RESOURCES += \
     Resources/resources.qrc

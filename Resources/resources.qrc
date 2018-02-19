@@ -11,5 +11,7 @@
         <file>Sound/newMessage.wav</file>
         <file>Icons/micro_off_icon.png</file>
         <file>Icons/micro_on_icon.png</file>
+        <file>Icons/checkmark_circled_icon.png</file>
+        <file>Icons/close_circled_icon.png</file>
     </qresource>
 </RCC>

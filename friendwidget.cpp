@@ -16,7 +16,7 @@ FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f,
     profileIcon = new QLabel(this);
     profileIcon->setPixmap(icon.pixmap(64, 64));
 
-    QLabel* profileName = new QLabel(this);
+    profileName = new QLabel(this);
     profileName->setText(name);
     profileName->move(70, 15);
 
@@ -61,6 +61,28 @@ void FriendWidget::readUnreadMessages()
     {
         profileUnreadMessages->clear();
         profileUnreadMessages->setVisible(false);
+    }
+}
+
+void FriendWidget::updateInfo(QString info)
+{
+    if(info.indexOf("/name/") != -1)
+    {
+        info.remove("/name/");
+        name = info;
+        profileName->setText(name);
+    }
+
+    if(info.indexOf("/email/") != -1)
+    {
+        info.remove("/email/");
+        email = info;
+    }
+
+    if(info.indexOf("/phone/") != -1)
+    {
+        info.remove("/phone/");
+        phone = info;
     }
 }
 

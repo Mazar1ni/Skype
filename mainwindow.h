@@ -11,14 +11,14 @@
 #include <QScrollArea>
 #include <QDate>
 #include <QCloseEvent>
+#include <QLabel>
 
 class Sox;
 class FriendWidget;
 class Message;
 class QMediaPlayer;
 class WebCam;
-
-class QLabel;
+class ProfileWidget;
 
 class MainWindow : public QWidget
 {
@@ -37,6 +37,7 @@ public:
     void closeEvent(QCloseEvent *event);
     void imgWin(QByteArray buff);
     void turnVideoBroadcast(int idSender, bool onOff);
+    void updateInfo(QString info);
 
 signals:
     void startRecord();
@@ -60,6 +61,7 @@ private slots:
     void endCall();
     void clickedMicroButton();
     void clickedVideoButton();
+    void clickedProfileWidget();
 
 private:
     QString id;
@@ -68,6 +70,7 @@ private:
     QString name;
     QString phone;
 
+    ProfileWidget* profileWidget;
     QVBoxLayout* messageVBox;
     QLineEdit* lineMessage;
     QTcpSocket* Socket;

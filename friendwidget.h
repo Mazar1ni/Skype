@@ -15,6 +15,7 @@ public:
     void updateStatus(QString stat);
     void newUnreadMessages();
     void readUnreadMessages();
+    void updateInfo(QString info);
     int getCountUnreadMessages() const;
     QString getLogin() const;
     QString getName() const;
@@ -43,6 +44,7 @@ public:
     QString phone;
     QString status;
     QLabel* profileStatus;
+    QLabel* profileName;
     QLabel* profileUnreadMessages;
     QLabel* profileIcon;
     QTime timeCall;
