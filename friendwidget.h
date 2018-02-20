@@ -10,7 +10,8 @@ class FriendWidget : public QWidget
 {
     Q_OBJECT
 public:
-    FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph, QString st, QString um, QWidget *parent = nullptr);
+    FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph,
+                 QString st, QString um, QString in, QWidget *par = nullptr);
 
     void updateStatus(QString stat);
     void newUnreadMessages();
@@ -25,9 +26,13 @@ public:
     bool getVideoStatus() const;
     void setVideoStatus(bool value);
     QTime getTimeCall() const;
+    void downloadNewIcon(QString nameIcon);
 
 public slots:
     void incrementTimeSec();
+
+private slots:
+    void updateIcon();
 
 private:
     void mousePressEvent(QMouseEvent *event);
@@ -43,6 +48,8 @@ public:
     QString name;
     QString phone;
     QString status;
+    int countUnreadMessages;
+    QString iconName;
     QLabel* profileStatus;
     QLabel* profileName;
     QLabel* profileUnreadMessages;
@@ -52,7 +59,6 @@ public:
     QIcon icon;
     bool callStatus = false;
     bool videoStatus = false;
-    int countUnreadMessages = 0;
 };
 
 #endif // FRIENDWIDGET_H

@@ -5,6 +5,7 @@
 #include "message.h"
 #include "webcam.h"
 #include "profilewidget.h"
+#include "filetransfer.h"
 #include <QApplication>
 #include <QPushButton>
 #include <QMessageBox>
@@ -18,6 +19,7 @@
 #include <QTimer>
 #include <QDate>
 #include <QBuffer>
+
 MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWidget *parent)
     : QWidget(parent), Socket(Sock), sox(Sox), webCam(wb)
 {
@@ -33,8 +35,10 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     email = list[2];
     name = list[3];
     phone = list[4];
+    identificationNumber = list[5];
+    iconName = list[6];
 
-    profileWidget = new ProfileWidget(name);
+    profileWidget = new ProfileWidget(name, iconName, id);
     profileWidget->setMaximumSize(200, 90);
 
     connect(profileWidget, SIGNAL(clicked()), this, SLOT(clickedProfileWidget()));
@@ -117,6 +121,7 @@ void MainWindow::gettingFriends(QString str)
     list[4] - Phone
     list[5] - Status
     list[6] - Under Messages
+    list[7] - Icon Name
     */
 
     if(list[5] == "0")
@@ -129,7 +134,7 @@ void MainWindow::gettingFriends(QString str)
     }
 
     FriendWidget* friendWidget = new FriendWidget(list[0], list[1],
-            list[2], list[3], list[4], list[5], list[6]);
+            list[2], list[3], list[4], list[5], list[6], list[7], this);
 
     friendsVBox->addWidget(friendWidget, Qt::AlignTop);
 
@@ -292,11 +297,24 @@ void MainWindow::clickedProfileWidget()
 
     QVBoxLayout* profileLeftVBox = new QVBoxLayout;
 
-    QLabel* profileIcon = new QLabel;
-    profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(256, 256));
+    profileIcon = new QLabel;
+    profileIcon->setPixmap(QIcon("IconFriends/" + id + "!" + iconName).pixmap(256, 256));
     profileIcon->setMargin(30);
 
+    QPushButton* changeIcon = new QPushButton;
+    changeIcon->setText("Change Icon");
+
+    connect(changeIcon, &QPushButton::clicked, [this](){
+
+        FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber, "uploadMainIcon");
+        fileTransfer->start();
+        connect(fileTransfer, &FileTransfer::sendFriendsUpdateIcon, [this](){
+            this->SlotSendToServer("/sendFriendsUpdateIcon/");
+        });
+    });
+
     profileLeftVBox->addWidget(profileIcon);
+    profileLeftVBox->addWidget(changeIcon);
     profileLeftVBox->addStretch();
 
     QVBoxLayout* profileRightVBox = new QVBoxLayout;
@@ -850,10 +868,44 @@ void MainWindow::SlotReadyRead()
                 friendW->updateInfo(list[1]);
                 if(friendInf != nullptr && friendInf == friendW)
                 {
-                    dynamic_cast<QLabel*>(mainScreenWithButtons->children().at(mainScreenWithButtons->children().count() - 2))->setText(list[1]);
+                    dynamic_cast<QLabel*>(mainScreenWithButtons->children().at
+                                          (mainScreenWithButtons->children().count() - 2))->setText(list[1]);
                 }
             }
         }
+    }
+    else if(str.indexOf("/updateFriendIcon/") != -1)
+    {
+        str.remove("/updateFriendIcon/");
+
+        QStringList list = str.split("!");
+
+        foreach (FriendWidget* friendW, friendWidgets)
+        {
+            if(friendW->id == list[0])
+            {
+                friendW->downloadNewIcon(list[1]);
+            }
+        }
+    }
+    else if(str.indexOf("/updateMainIcon/") != -1)
+    {
+        str.remove("/updateMainIcon/");
+
+        profileWidget->updateIconName(str);
+        iconName = str;
+
+        FileTransfer* fileTransfer = new FileTransfer(id, identificationNumber,
+                                                      "downloadMainIcon", id + "!" + str);
+        fileTransfer->start();
+        connect(fileTransfer, SIGNAL(updateIconFriend()), profileWidget, SLOT(updateIcon()));
+        connect(fileTransfer, &FileTransfer::updateIconFriend, [this](){
+            if(this->profileIcon != nullptr)
+            {
+              this->profileIcon->setPixmap(QIcon("IconFriends/" + this->id
+                                                 + "!" + this->iconName).pixmap(256, 256));
+            }
+        });
     }
     else if(str.indexOf("/Incorrect password/") != -1)
     {

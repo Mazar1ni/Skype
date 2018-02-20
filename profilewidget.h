@@ -8,17 +8,22 @@ class ProfileWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ProfileWidget(QString name, QWidget *parent = nullptr);
+    explicit ProfileWidget(QString n, QString iconN, QString i, QWidget *parent = nullptr);
     void mousePressEvent(QMouseEvent* event);
     void updateName(QString newName);
+    void updateIconName(QString newName);
 
 signals:
     clicked();
-public slots:
+private slots:
+    void updateIcon();
 
 private:
     QString name;
+    QString iconName;
+    QString id;
     QLabel* profileName;
+    QLabel* profileIcon;
 };
 
 #endif // PROFILEWIDGET_H

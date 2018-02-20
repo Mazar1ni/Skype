@@ -58,7 +58,8 @@ SOURCES += \
     sox.cpp \
     message.cpp \
     webcam.cpp \
-    profilewidget.cpp
+    profilewidget.cpp \
+    filetransfer.cpp
 
 HEADERS += \
     UI/widget.h \
@@ -71,7 +72,8 @@ HEADERS += \
     sox.h \
     message.h \
     webcam.h \
-    profilewidget.h
+    profilewidget.h \
+    filetransfer.h
 
 RESOURCES += \
     Resources/resources.qrc

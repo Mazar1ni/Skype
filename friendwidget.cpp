@@ -1,20 +1,41 @@
 #include "friendwidget.h"
+#include "filetransfer.h"
 #include <QMouseEvent>
 #include <QMessageBox>
 #include <QDebug>
 #include <QTimer>
+#include <QFile>
+#include <QDir>
 
 FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f,
-                           QString ph, QString st, QString um, QWidget *parent) :
-    QWidget(parent), id(friendsId), login(l), email(em), name(f),
-    phone(ph), status(st), countUnreadMessages(um.toInt())
+                           QString ph, QString st, QString um, QString in, QWidget *par) :
+    QWidget(par), id(friendsId), login(l), email(em), name(f),
+    phone(ph), status(st), countUnreadMessages(um.toInt()), iconName(in)
 {
     setMaximumSize(200, 60);
 
-    icon = QIcon(":/Icons/standart_icon.png");
+    if(iconName != "standart_icon.png")
+    {
+        QDir().mkdir("IconFriends");
+        if(!QFile::exists("IconFriends/" + id + "!" + iconName))
+        {
+            FileTransfer* fileTransfer = new FileTransfer("1", "1", "downloadFriendIcon", id + "!" + iconName);
+            fileTransfer->start();
+            connect(fileTransfer, SIGNAL(updateIconFriend()), this, SLOT(updateIcon()));
+        }
+        else
+        {
+            icon = QIcon("IconFriends/" + id + "!" + iconName);
+        }
+    }
+    else
+    {
+        icon = QIcon(":/Icons/standart_icon.png");
+    }
 
     profileIcon = new QLabel(this);
     profileIcon->setPixmap(icon.pixmap(64, 64));
+    profileIcon->setMinimumSize(64, 64);
 
     profileName = new QLabel(this);
     profileName->setText(name);
@@ -107,6 +128,20 @@ void FriendWidget::setVideoStatus(bool value)
 QTime FriendWidget::getTimeCall() const
 {
     return timeCall;
+}
+
+void FriendWidget::downloadNewIcon(QString nameIcon)
+{
+    iconName = nameIcon;
+    FileTransfer* fileTransfer = new FileTransfer("1", "1", "downloadFriendIcon", id + "!" + nameIcon);
+    fileTransfer->start();
+    connect(fileTransfer, SIGNAL(updateIconFriend()), this, SLOT(updateIcon()));
+}
+
+void FriendWidget::updateIcon()
+{
+    icon = QIcon("IconFriends/" + id + "!" + iconName);
+    profileIcon->setPixmap(icon.pixmap(64, 64));
 }
 
 void FriendWidget::incrementTimeSec()

@@ -69,6 +69,8 @@ private:
     QString email;
     QString name;
     QString phone;
+    QString identificationNumber;
+    QString iconName;
 
     ProfileWidget* profileWidget;
     QVBoxLayout* messageVBox;
@@ -110,6 +112,7 @@ private:
 
     QHBoxLayout* camAndIconLayout;
     QLabel* iconFriend;
+    QLabel* profileIcon;
 
 };
 
