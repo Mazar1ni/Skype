@@ -11,17 +11,29 @@ FileTransfer::FileTransfer(QString id, QString autNum, QString type, QString fil
 
     connect(socket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 
+    QTimer::singleShot(1000, [this](){
+        this->slotSendServer("/connect/" + this->idUser + "!" + this->identificationNumber);
+    });
+
     if(type == "uploadMainIcon")
     {
-        QTimer::singleShot(5000, this, SLOT(slotDataTransferMainIcon()));
+        QTimer::singleShot(2000, this, SLOT(slotDataTransferMainIcon()));
     }
     else if(type == "downloadFriendIcon")
     {
-        QTimer::singleShot(5000, this, SLOT(slotDataAcquisitionFriendIcon()));
+        QTimer::singleShot(2000, this, SLOT(slotDataAcquisitionFriendIcon()));
     }
     else if(type == "downloadMainIcon")
     {
-        QTimer::singleShot(5000, this, SLOT(slotDataAcquisitionMainIcon()));
+        QTimer::singleShot(2000, this, SLOT(slotDataAcquisitionMainIcon()));
+    }
+    else if(type == "uploadFile")
+    {
+        QTimer::singleShot(2000, this, SLOT(slotUploadFile()));
+    }
+    else if(type == "downloadFile")
+    {
+        QTimer::singleShot(2000, this, SLOT(slotDownloadFile()));
     }
 }
 
@@ -37,6 +49,13 @@ void FileTransfer::endFile(QByteArray buffer)
     uploadFile->deleteLater();
 }
 
+void FileTransfer::disconnect()
+{
+    socket->close();
+    quit();
+    deleteLater();
+}
+
 void FileTransfer::slotReadyRead()
 {
     QByteArray buffer;
@@ -49,7 +68,7 @@ void FileTransfer::slotReadyRead()
 
     if(str.indexOf("/invalidData/") != -1)
     {
-        deleteLater();
+        disconnect();
     }
     else if(buffer.indexOf("endFileIcon") != -1)
     {
@@ -57,16 +76,24 @@ void FileTransfer::slotReadyRead()
         endFile(buffer);
         updateIconFriend();
         //QFile("IconFriends/" + fileName).remove();
-        socket->close();
-        quit();
-        deleteLater();
+        disconnect();
+    }
+    else if(buffer.indexOf("endFile") != -1)
+    {
+        buffer.remove(buffer.size() - 8, 7);
+        endFile(buffer);
+        //QFile("IconFriends/" + fileName).remove();
+        disconnect();
     }
     else if(str.indexOf("/successTransferMainIcon/") != -1)
     {
         sendFriendsUpdateIcon();
-        socket->close();
-        quit();
-        deleteLater();
+        disconnect();
+    }
+    else if(str.indexOf("/successTransferFile/") != -1)
+    {
+        sendFriendFileMessage();
+        disconnect();
     }
     else
     {
@@ -101,20 +128,44 @@ void FileTransfer::slotDataAcquisitionMainIcon()
 
 void FileTransfer::slotDataTransferMainIcon()
 {
-    slotSendServer("/connect/" + idUser + "!" + identificationNumber);
     QString filePath = QFileDialog::getOpenFileName(0,
                                                  "Open File",
                                                  "",
                                                  "*.jpeg, *.jpg, *.png");
 
-    QString fileName = filePath.mid(filePath.lastIndexOf("/") + 1);
+    QString nameFile = filePath.mid(filePath.lastIndexOf("/") + 1);
 
-    slotSendServer("/informationFileIcon/" + fileName);
+    slotSendServer("/informationFileIcon/" + nameFile);
     QThread::msleep(100);
 
     QFile file(filePath);
     file.open(QFile::ReadOnly);
     QByteArray dataFile = file.readAll();
 
-    socket->write(dataFile + "/mainIconEndFile/");
+    socket->write(dataFile + "mainIconEndFile");
+}
+
+void FileTransfer::slotUploadFile()
+{
+    QString nameFile = fileName.mid(fileName.lastIndexOf("/") + 1);
+
+    slotSendServer("/informationUploadFile/" + nameFile);
+    QThread::msleep(100);
+
+    fileName.remove(0, 1);
+
+    QFile file(fileName);
+    file.open(QFile::ReadOnly);
+    QByteArray dataFile = file.readAll();
+
+    socket->write(dataFile + "uploadEndFile");
+}
+
+void FileTransfer::slotDownloadFile()
+{
+    QString directoryPath = QFileDialog::getExistingDirectory(0, "Directory Dialog", "");
+
+    uploadFile = new QFile(directoryPath + "/" + fileName.mid(fileName.indexOf("!") + 1));
+    uploadFile->open(QFile::WriteOnly);
+    slotSendServer("/informationAcquisitionFile/" + fileName);
 }

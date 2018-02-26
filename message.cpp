@@ -10,20 +10,6 @@ Message::Message(QString message, QString time, side s, QWidget *parent): QWidge
 
     messageL = new QLabel(message);
 
-//    // width
-//    if(messageL->minimumSizeHint().width()<200){
-//        messageL->setMinimumWidth(200);
-//    }else{
-//        messageL->setMinimumWidth(0);
-//    }
-
-//    // height
-//    if(messageL->minimumSizeHint().height()<100){
-//        messageL->setMinimumHeight(100);
-//    }else{
-//        messageL->setMinimumHeight(0);
-//    }
-
     messageL->setAlignment(Qt::AlignCenter);
 
     messageL->setWordWrap(true);
@@ -61,4 +47,10 @@ int Message::sizeMessageL()
 QString Message::getMessage() const
 {
     return messageL->text();
+}
+
+void Message::mousePressEvent(QMouseEvent *event)
+{
+    Q_UNUSED(event);
+    clicked();
 }

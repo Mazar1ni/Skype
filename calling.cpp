@@ -4,10 +4,9 @@
 
 calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(parentW), nameRoom(name), pass(passRoom)
 {
-
     setMinimumSize(500, 70);
 
-    int pos = name.left(pos).indexOf("-");
+    int pos = name.indexOf("-");
 
     QString nameFriend = name.left(pos);
 

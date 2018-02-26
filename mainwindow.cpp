@@ -19,6 +19,7 @@
 #include <QTimer>
 #include <QDate>
 #include <QBuffer>
+#include "chatwidget.h"
 
 MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWidget *parent)
     : QWidget(parent), Socket(Sock), sox(Sox), webCam(wb)
@@ -38,7 +39,7 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     identificationNumber = list[5];
     iconName = list[6];
 
-    profileWidget = new ProfileWidget(name, iconName, id);
+    profileWidget = new ProfileWidget(name, iconName, id, identificationNumber);
     profileWidget->setMaximumSize(200, 90);
 
     connect(profileWidget, SIGNAL(clicked()), this, SLOT(clickedProfileWidget()));
@@ -134,7 +135,7 @@ void MainWindow::gettingFriends(QString str)
     }
 
     FriendWidget* friendWidget = new FriendWidget(list[0], list[1],
-            list[2], list[3], list[4], list[5], list[6], list[7], this);
+            list[2], list[3], list[4], list[5], list[6], list[7], id, identificationNumber, this);
 
     friendsVBox->addWidget(friendWidget, Qt::AlignTop);
 
@@ -558,11 +559,13 @@ void MainWindow::SlotReadyRead()
         static QDate lastDate;
         bool lastDateBool = false;
         bool first = false;
+        bool isDownloadFile;
 
         QStringList list = str.split("/!/");
 
         for(int i = 0; i < list.count() - 1; i++)
         {
+            isDownloadFile = false;
             QStringList listMessage = list[i].split("!");
 
             QString idFriend = listMessage[0];
@@ -602,6 +605,12 @@ void MainWindow::SlotReadyRead()
                 {
                     message = friendInf->getName() + " " + QString::fromLocal8Bit("начал разговор");
                 }
+            }
+
+            if(message.indexOf("/downloadFile/") != -1)
+            {
+                message.remove("/downloadFile/");
+                isDownloadFile = true;
             }
 
             if(message.indexOf("/endingCall/") != -1)
@@ -647,6 +656,14 @@ void MainWindow::SlotReadyRead()
                     scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
                                                               + m->sizeMessageL());
                 }
+                if(isDownloadFile == true)
+                {
+                    connect(m, &Message::clicked, [this, message, idChat](){
+                        FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber,
+                                                                      "downloadFile", idChat + "!" + message);
+                        fileTransfer->start();
+                    });
+                }
             }
             else if(idChat == friendInf->id && idFriend == id)
             {
@@ -690,6 +707,14 @@ void MainWindow::SlotReadyRead()
                     SlotSendToServer("/readUnreadMessages/" + idMessage + "!"  + friendInf->id);
                     QThread::msleep(15);
                 }
+                if(isDownloadFile == true)
+                {
+                    connect(m, &Message::clicked, [this, message, idChat](){
+                        FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber,
+                                                                      "downloadFile", idChat + "!" + message);
+                        fileTransfer->start();
+                    });
+                }
             }
             if(isScrolling == true)
             {
@@ -720,6 +745,8 @@ void MainWindow::SlotReadyRead()
         QString message = list[5];
         QString status;
 
+        bool isDownloadFile = false;
+
         if(list.count() == 7)
         {
             status = list[6];
@@ -744,6 +771,12 @@ void MainWindow::SlotReadyRead()
             message = QString::fromLocal8Bit("Звонок завершен. Продолжительность: ") + message;
         }
 
+        if(message.indexOf("/downloadFile/") != -1)
+        {
+            message.remove("/downloadFile/");
+            isDownloadFile = true;
+        }
+
         if(friendInf != nullptr && (friendInf->id == idSender || id == idSender))
         {
             if(Date != QDate::fromString(date,"dd MMMM yyyy"))
@@ -756,12 +789,28 @@ void MainWindow::SlotReadyRead()
                 Message* m = new Message(message, time, Message::right);
                 messageWidgets.append(m);
                 messageVBox->addWidget(m);
+                if(isDownloadFile == true)
+                {
+                    connect(m, &Message::clicked, [this, message, idSender](){
+                        FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber,
+                                                                      "downloadFile", idSender + "!" + message);
+                        fileTransfer->start();
+                    });
+                }
             }
             else
             {
                 Message* m = new Message(message, time, Message::left);
                 messageWidgets.append(m);
                 messageVBox->addWidget(m);
+                if(isDownloadFile == true)
+                {
+                    connect(m, &Message::clicked, [this, message, idSender](){
+                        FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber,
+                                                                      "downloadFile", idSender + "!" + message);
+                        fileTransfer->start();
+                    });
+                }
             }
             if(status == "1")
             {
@@ -1197,8 +1246,12 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     scrollarea->setWidgetResizable(true);
     scrollarea->setFrameStyle(QFrame::NoFrame);
 
-    QWidget *messageWidget = new QWidget();
+    ChatWidget *messageWidget = new ChatWidget(id, identificationNumber, friendInf->id);
     scrollarea->setWidget(messageWidget);
+
+    connect(messageWidget, &ChatWidget::sendFriendFileMessage, [this](QString idFriend, QString nameFile){
+        this->SlotSendToServer("/message/" + idFriend + "!" + "/downloadFile/" + nameFile);
+    });
 
     messageVBox = new QVBoxLayout();
     messageVBox->addStretch();

@@ -17,6 +17,12 @@ public:
 
     QString getMessage() const;
 
+signals:
+    void clicked();
+
+protected:
+    void mousePressEvent(QMouseEvent* event);
+
 private:
     QLabel* messageL;
     QHBoxLayout* mainHBox;

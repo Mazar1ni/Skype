@@ -8,7 +8,7 @@ class ProfileWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ProfileWidget(QString n, QString iconN, QString i, QWidget *parent = nullptr);
+    explicit ProfileWidget(QString n, QString iconN, QString i, QString identNumber, QWidget *parent = nullptr);
     void mousePressEvent(QMouseEvent* event);
     void updateName(QString newName);
     void updateIconName(QString newName);
@@ -22,6 +22,7 @@ private:
     QString name;
     QString iconName;
     QString id;
+    QString identifiacationNumber;
     QLabel* profileName;
     QLabel* profileIcon;
 };

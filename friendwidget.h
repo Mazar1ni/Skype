@@ -11,7 +11,7 @@ class FriendWidget : public QWidget
     Q_OBJECT
 public:
     FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph,
-                 QString st, QString um, QString in, QWidget *par = nullptr);
+                 QString st, QString um, QString in, QString idPar, QString identNumber, QWidget *par = nullptr);
 
     void updateStatus(QString stat);
     void newUnreadMessages();
@@ -50,6 +50,8 @@ public:
     QString status;
     int countUnreadMessages;
     QString iconName;
+    QString idParent;
+    QString identificationNumber;
     QLabel* profileStatus;
     QLabel* profileName;
     QLabel* profileUnreadMessages;

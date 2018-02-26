@@ -3,8 +3,8 @@
 #include <QIcon>
 #include <QMouseEvent>
 
-ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QWidget *parent)
-    : QWidget(parent), name(n), iconName(iconN), id(i)
+ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QString identNumber, QWidget *parent)
+    : QWidget(parent), name(n), iconName(iconN), id(i), identifiacationNumber(identNumber)
 {
     profileIcon = new QLabel(this);
     profileIcon->setMinimumSize(64, 64);
@@ -18,7 +18,8 @@ ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QWidget *paren
         QDir().mkdir("IconFriends");
         if(!QFile::exists("IconFriends/" + id + "!" + iconName))
         {
-            FileTransfer* fileTransfer = new FileTransfer("1", "1", "downloadMainIcon", id + "!" + iconName);
+            FileTransfer* fileTransfer = new FileTransfer(id, identifiacationNumber,
+                                                          "downloadMainIcon", id + "!" + iconName);
             fileTransfer->start();
             connect(fileTransfer, SIGNAL(updateIconFriend()), this, SLOT(updateIcon()));
         }

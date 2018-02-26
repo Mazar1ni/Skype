@@ -59,7 +59,8 @@ SOURCES += \
     message.cpp \
     webcam.cpp \
     profilewidget.cpp \
-    filetransfer.cpp
+    filetransfer.cpp \
+    chatwidget.cpp
 
 HEADERS += \
     UI/widget.h \
@@ -73,7 +74,8 @@ HEADERS += \
     message.h \
     webcam.h \
     profilewidget.h \
-    filetransfer.h
+    filetransfer.h \
+    chatwidget.h
 
 RESOURCES += \
     Resources/resources.qrc

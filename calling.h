@@ -17,9 +17,8 @@ public:
 
 private:
     MainWindow* parent;
-    QString pass;
     QString nameRoom;
-
+    QString pass;
 };
 
 #endif // CALLING_H

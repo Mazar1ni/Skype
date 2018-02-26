@@ -7,10 +7,11 @@
 #include <QFile>
 #include <QDir>
 
-FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f,
-                           QString ph, QString st, QString um, QString in, QWidget *par) :
+FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph, QString st,
+                           QString um, QString in, QString idPar, QString identNumber, QWidget *par) :
     QWidget(par), id(friendsId), login(l), email(em), name(f),
-    phone(ph), status(st), countUnreadMessages(um.toInt()), iconName(in)
+    phone(ph), status(st), countUnreadMessages(um.toInt()), iconName(in), idParent(idPar),
+    identificationNumber(identNumber)
 {
     setMaximumSize(200, 60);
 
@@ -19,7 +20,7 @@ FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f,
         QDir().mkdir("IconFriends");
         if(!QFile::exists("IconFriends/" + id + "!" + iconName))
         {
-            FileTransfer* fileTransfer = new FileTransfer("1", "1", "downloadFriendIcon", id + "!" + iconName);
+            FileTransfer* fileTransfer = new FileTransfer(idPar, identificationNumber, "downloadFriendIcon", id + "!" + iconName);
             fileTransfer->start();
             connect(fileTransfer, SIGNAL(updateIconFriend()), this, SLOT(updateIcon()));
         }
@@ -133,7 +134,7 @@ QTime FriendWidget::getTimeCall() const
 void FriendWidget::downloadNewIcon(QString nameIcon)
 {
     iconName = nameIcon;
-    FileTransfer* fileTransfer = new FileTransfer("1", "1", "downloadFriendIcon", id + "!" + nameIcon);
+    FileTransfer* fileTransfer = new FileTransfer(id, identificationNumber, "downloadFriendIcon", id + "!" + nameIcon);
     fileTransfer->start();
     connect(fileTransfer, SIGNAL(updateIconFriend()), this, SLOT(updateIcon()));
 }
