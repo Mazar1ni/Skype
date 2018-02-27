@@ -1,6 +1,7 @@
 #include "authentication.h"
 #include "settingsconnection.h"
 #include "skype.h"
+#include "registration.h"
 #include <QLabel>
 #include <QFile>
 #include <QHostAddress>
@@ -35,14 +36,24 @@ Authentication::Authentication(QTcpSocket *soc, Skype *parent) : Parent(parent),
     btnConnect = new QPushButton(this);
     btnConnect->resize(100, 30);
     btnConnect->move(120, 100);
-    btnConnect->setText("Connect");
+    btnConnect->setText("Sign in");
     connect(btnConnect, SIGNAL(clicked(bool)), this, SLOT(Connect()));
 
+    QLabel* textLabel = new QLabel(this);
+    textLabel->move(230, 110);
+    textLabel->setText("or");
+
     // инициализаци€ и оформление текста перенаправл€ющего на сайт
-    QLabel* LinkReginstration = new QLabel(this);
-    LinkReginstration->move(250, 5);
-    LinkReginstration->setOpenExternalLinks(true);
-    LinkReginstration->setText("<a href=\"http://google.ru\">Not have an account, sign up!</a>");
+    QPushButton* LinkReginstration = new QPushButton(this);
+    LinkReginstration->move(250, 100);
+    LinkReginstration->resize(110, 30);
+    LinkReginstration->setStyleSheet("border: none; color: blue; font: bold 14p;");
+    LinkReginstration->setText("Create an account");
+    connect(LinkReginstration, &QPushButton::clicked, [this](){
+        Registration* registrationWidget = new Registration;
+        registrationWidget->setAttribute(Qt::WA_ShowModal, true);
+        registrationWidget->show();
+    });
 
     // инииализаци€ и оформление кнопки настройки подключени€ к серверу
     btnSettings = new QPushButton(this);
@@ -90,11 +101,9 @@ void Authentication::Connect()
             text = stream.readAll();
             pos = text.indexOf(":");
 
-            // инифиализаи€ сокета
+            // инициализаи€ сокета
             //QHostAddress(text.left(pos))
             Socket->connectToHost("localhost", (qint16)text.mid(pos+1).toInt());
-//            AudioSocket = new QTcpSocket(this);
-//            AudioSocket->connectToHost("localhost", (qint16)7071);
             in.close();
 
             connect(Socket, SIGNAL(connected()), SLOT(slotConnected()));
@@ -121,8 +130,6 @@ void Authentication::slotReadyRead()
 
     QString str;
     in >> str;
-
-    qDebug() << str;
 
     // проверка правильный ли логин и пароль
     if(str.indexOf("/1/") != -1)

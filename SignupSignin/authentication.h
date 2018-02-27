@@ -5,7 +5,6 @@
 #include <QTcpSocket>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QTcpSocket>
 #include <QKeyEvent>
 
 class SettingsConnection;

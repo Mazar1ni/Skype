@@ -48,9 +48,6 @@ CONFIG(debug, debug|release) {
 
 SOURCES += \
         main.cpp \
-    UI/widget.cpp \
-    UI/authentication.cpp \
-    UI/settingsconnection.cpp \
     skype.cpp \
     mainwindow.cpp \
     friendwidget.cpp \
@@ -60,12 +57,12 @@ SOURCES += \
     webcam.cpp \
     profilewidget.cpp \
     filetransfer.cpp \
-    chatwidget.cpp
+    chatwidget.cpp \
+    SignupSignin/authentication.cpp \
+    SignupSignin/registration.cpp \
+    SignupSignin/settingsconnection.cpp
 
 HEADERS += \
-    UI/widget.h \
-    UI/authentication.h \
-    UI/settingsconnection.h \
     skype.h \
     mainwindow.h \
     friendwidget.h \
@@ -75,7 +72,10 @@ HEADERS += \
     webcam.h \
     profilewidget.h \
     filetransfer.h \
-    chatwidget.h
+    chatwidget.h \
+    SignupSignin/authentication.h \
+    SignupSignin/registration.h \
+    SignupSignin/settingsconnection.h
 
 RESOURCES += \
     Resources/resources.qrc

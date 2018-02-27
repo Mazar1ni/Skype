@@ -1,5 +1,5 @@
 #include "skype.h"
-#include "UI/authentication.h"
+#include "SignupSignin/authentication.h"
 #include "mainwindow.h"
 #include <QDebug>
 #include "sox.h"
@@ -7,10 +7,6 @@
 
 Skype::Skype()
 {
-//    Socket = new QTcpSocket(this);
-//    Main = new MainWindow(Socket);
-//    Main->show();
-
     Socket = new QTcpSocket(this);
     Authentication* auth = new Authentication(Socket, this);
     auth->show();
