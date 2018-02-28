@@ -48,18 +48,31 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     search->resize(150, 20);
     search->setMaximumWidth(200);
 
+    QScrollArea* scrollareaFriends = new QScrollArea();
+    scrollareaFriends->setWidgetResizable(true);
+    scrollareaFriends->setFrameStyle(QFrame::NoFrame);
+
     QWidget* friendsWidget = new QWidget;
-    friendsWidget->setMaximumSize(200, this->size().height());
+    scrollareaFriends->setWidget(friendsWidget);
+
     friendsVBox = new QVBoxLayout;
     friendsVBox->setAlignment(Qt::AlignTop);
     friendsWidget->setLayout(friendsVBox);
 
+    QScrollArea* scrollareaRecent = new QScrollArea();
+    scrollareaRecent->setWidgetResizable(true);
+    scrollareaRecent->setFrameStyle(QFrame::NoFrame);
+
     QWidget* recentWidget = new QWidget;
-    recentWidget->setMaximumSize(200, this->size().height());
+    scrollareaRecent->setWidget(recentWidget);
+
+    recentVBox = new QVBoxLayout;
+    recentVBox->setAlignment(Qt::AlignTop);
+    recentWidget->setLayout(recentVBox);
 
     QTabWidget* listFriendsAndRecent = new QTabWidget;
-    listFriendsAndRecent->addTab(friendsWidget, "Friends");
-    listFriendsAndRecent->addTab(recentWidget, "Recent");
+    listFriendsAndRecent->addTab(scrollareaFriends, "Friends");
+    listFriendsAndRecent->addTab(scrollareaRecent, "Recent");
     listFriendsAndRecent->setStyleSheet(QString("QTabBar::tab {width: 100px; height: 35px;}"));
     listFriendsAndRecent->setFixedWidth(200);
 
@@ -97,6 +110,11 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
 
     // получение от сервера друзей пользователя
     SlotSendToServer("/4/");
+
+    // получение от сервера последние звонки пользователя
+    QTimer::singleShot(2000, [this](){
+        SlotSendToServer("/recent/");
+    });
 }
 
 void MainWindow::SlotSendToServer(QString str)
@@ -110,7 +128,7 @@ void MainWindow::SlotSendToServer(QString str)
     Socket->flush();
 }
 
-void MainWindow::gettingFriends(QString str)
+void MainWindow::gettingFriends(QString str, QString mode)
 {
     QStringList list = str.split("!");
 
@@ -137,11 +155,39 @@ void MainWindow::gettingFriends(QString str)
     FriendWidget* friendWidget = new FriendWidget(list[0], list[1],
             list[2], list[3], list[4], list[5], list[6], list[7], id, identificationNumber, this);
 
-    friendsVBox->addWidget(friendWidget, Qt::AlignTop);
+    if(mode == "friend")
+    {
+        friendsVBox->addWidget(friendWidget, Qt::AlignTop);
 
-    friendWidgets.append(friendWidget);
+        friendWidgets.append(friendWidget);
+    }
+    else if(mode == "recent")
+    {
+        recentVBox->addWidget(friendWidget, Qt::AlignTop);
+        recentWidgets.append(friendWidget);
+    }
+    else if(mode == "newRecent")
+    {
+        recentVBox->insertWidget(0, friendWidget, Qt::AlignTop);
+        recentWidgets.append(friendWidget);
+    }
 
     connect(friendWidget, SIGNAL(clicked(FriendWidget*)), this, SLOT(clickedFriendWidget(FriendWidget*)));
+}
+
+void MainWindow::addRecent(QString id)
+{
+    for(int i = 0; i < recentWidgets.size(); i++)
+    {
+        if(recentWidgets.at(i)->id == id)
+        {
+            recentVBox->removeWidget(recentWidgets.at(i));
+            recentVBox->insertWidget(0, recentWidgets.at(i));
+            return;
+        }
+    }
+
+    SlotSendToServer("/newRecent/" + id);
 }
 
 void MainWindow::createSettingRoomWidget()
@@ -550,7 +596,19 @@ void MainWindow::SlotReadyRead()
     {
         str.remove("/5/");
 
-        gettingFriends(str);
+        gettingFriends(str, "friend");
+    }
+    else if(str.indexOf("/recent/") != -1)
+    {
+        str.remove("/recent/");
+
+        gettingFriends(str, "recent");
+    }
+    else if(str.indexOf("/newRecent/") != -1)
+    {
+        str.remove("/newRecent/");
+
+        gettingFriends(str, "newRecent");
     }
     else if(str.indexOf("/getMessages/") != -1)
     {
@@ -756,10 +814,12 @@ void MainWindow::SlotReadyRead()
         {
             if(idSender == id)
             {
+                addRecent(idChat);
                 message = name + " " + QString::fromLocal8Bit("начал разговор");
             }
             else
             {
+                addRecent(idSender);
                 message = friendInf->getName() + " " + QString::fromLocal8Bit("начал разговор");
             }
         }
@@ -1223,6 +1283,10 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 {
+    if(friendInf->id == friendW->id)
+    {
+        return;
+    }
     isScrolling = true;
     numberBlockMessage = "1";
 

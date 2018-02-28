@@ -116,7 +116,6 @@ void Authentication::Connect()
     QTimer::singleShot(1000, &loop, SLOT(quit()));
     loop.exec();
     slotSendToServer();
-
 }
 
 void Authentication::slotConnected()

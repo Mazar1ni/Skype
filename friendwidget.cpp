@@ -13,7 +13,7 @@ FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f, 
     phone(ph), status(st), countUnreadMessages(um.toInt()), iconName(in), idParent(idPar),
     identificationNumber(identNumber)
 {
-    setMaximumSize(200, 60);
+    setFixedSize(200, 60);
 
     if(iconName != "standart_icon.png")
     {

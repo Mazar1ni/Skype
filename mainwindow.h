@@ -27,7 +27,8 @@ public:
     explicit MainWindow(QTcpSocket* Sock, QString str, Sox* Sox, WebCam* wb, QWidget *parent = nullptr);
 
     void SlotSendToServer(QString str);
-    void gettingFriends(QString str);
+    void gettingFriends(QString str, QString mode);
+    void addRecent(QString id);
     void createSettingRoomWidget();
     void upCalling(QString name, QString pass);
     void noUpCalling(QString name, QString pass);
@@ -77,6 +78,7 @@ private:
     QLineEdit* lineMessage;
     QTcpSocket* Socket;
     QVBoxLayout* friendsVBox;
+    QVBoxLayout* recentVBox;
     QLineEdit* nameRoom;
     QLineEdit* passRoom;
     QVBoxLayout* rightVBox;
@@ -84,6 +86,7 @@ private:
     QWidget* mainScreenWithButtons;
     FriendWidget* friendInf = nullptr;
     QList<FriendWidget*> friendWidgets;
+    QList<FriendWidget*> recentWidgets;
 
     QAudioOutput* AudioOutput;
     QAudioFormat Format;
