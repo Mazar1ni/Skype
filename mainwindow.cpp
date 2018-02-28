@@ -260,6 +260,14 @@ void MainWindow::upCalling(QString name, QString pass)
 
     friendInf->setCallStatus(true);
 
+    for(int i = 0; i < recentWidgets.count(); i++)
+    {
+        if(recentWidgets[i]->id == friendInf->id)
+        {
+            recentWidgets[i]->setCallStatus(true);
+        }
+    }
+
     createCallWidget();
 
     SlotSendToServer("/beginnigCall/" + friendInf->id);
@@ -279,6 +287,16 @@ void MainWindow::endCall()
                              friendWidgets.at(i)->getTimeCall().toString("hh:mm:ss"));
             friendWidgets.at(i)->setCallStatus(false);
             friendWidgets.at(i)->setVideoStatus(false);
+            break;
+        }
+    }
+
+    for(int i = 0; i < recentWidgets.count(); i++)
+    {
+        if(recentWidgets.at(i)->getCallStatus() == true)
+        {
+            recentWidgets.at(i)->setCallStatus(false);
+            recentWidgets.at(i)->setVideoStatus(false);
             break;
         }
     }
@@ -925,6 +943,19 @@ void MainWindow::SlotReadyRead()
                 }
             }
         }
+
+        foreach (FriendWidget* friendW, recentWidgets)
+        {
+            if(friendW->id == list[0])
+            {
+                friendW->updateStatus(list[1]);
+                if(friendInf != nullptr && friendInf == friendW)
+                {
+                    dynamic_cast<QLabel*>(mainScreenWithButtons->children().back())->setText(list[1]);
+                }
+            }
+        }
+
     }
     else if(str.indexOf("/beginnigCall/") != -1)
     {
@@ -947,6 +978,14 @@ void MainWindow::SlotReadyRead()
             }
         }
 
+        for(int i = 0; i < recentWidgets.count(); i++)
+        {
+            if(recentWidgets[i]->id == str)
+            {
+                recentWidgets[i]->setCallStatus(true);
+            }
+        }
+
         SlotSendToServer("/message/" + friendInf->id + "!" + "/beginningCall/");
     }
     else if(buffer.indexOf("/outoftheroom/") != -1)
@@ -958,6 +997,14 @@ void MainWindow::SlotReadyRead()
                 friendWidgets.at(i)->setCallStatus(false);
                 friendWidgets.at(i)->setVideoStatus(false);
                 clickedFriendWidget(friendWidgets.at(i));
+            }
+        }
+        for(int i = 0; i < recentWidgets.count(); i++)
+        {
+            if(recentWidgets.at(i)->getCallStatus() == true)
+            {
+                recentWidgets.at(i)->setCallStatus(false);
+                recentWidgets.at(i)->setVideoStatus(false);
             }
         }
         isOpenedRoom = false;
@@ -1073,6 +1120,15 @@ void MainWindow::turnVideoBroadcast(int idSender, bool onOff)
         if(friendWidgets.at(i)->id.toInt() == idSender)
         {
             friendWidgets.at(i)->setVideoStatus(onOff);
+            break;
+        }
+    }
+
+    for(int i = 0; i < recentWidgets.count(); i++)
+    {
+        if(recentWidgets.at(i)->id.toInt() == idSender)
+        {
+            recentWidgets.at(i)->setVideoStatus(onOff);
             break;
         }
     }
@@ -1283,10 +1339,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 {
-    if(friendInf->id == friendW->id)
-    {
-        return;
-    }
     isScrolling = true;
     numberBlockMessage = "1";
 
