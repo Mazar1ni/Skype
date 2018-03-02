@@ -11,7 +11,8 @@ class FriendWidget : public QWidget
     Q_OBJECT
 public:
     FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph,
-                 QString st, QString um, QString in, QString idPar, QString identNumber, QWidget *par = nullptr);
+                 QString st, QString um, QString in, QString idPar,
+                 QString identNumber, bool isFr, QWidget *par = nullptr);
 
     void updateStatus(QString stat);
     void newUnreadMessages();
@@ -27,6 +28,12 @@ public:
     void setVideoStatus(bool value);
     QTime getTimeCall() const;
     void downloadNewIcon(QString nameIcon);
+    bool getIsFriend() const;
+    void setIsFriend(bool value);
+    bool getIsEnableInviteToFriend() const;
+    void setIsEnableInviteToFriend(bool value);
+    QString getIsAcceptFriendInvitation() const;
+    void setIsAcceptFriendInvitation(const QString &value);
 
 public slots:
     void incrementTimeSec();
@@ -52,6 +59,9 @@ public:
     QString iconName;
     QString idParent;
     QString identificationNumber;
+    bool isFriend;
+    bool isEnableInviteToFriend = true;
+    QString isAcceptFriendInvitation = "false";
     QLabel* profileStatus;
     QLabel* profileName;
     QLabel* profileUnreadMessages;

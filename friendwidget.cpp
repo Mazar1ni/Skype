@@ -8,10 +8,10 @@
 #include <QDir>
 
 FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f, QString ph, QString st,
-                           QString um, QString in, QString idPar, QString identNumber, QWidget *par) :
+                           QString um, QString in, QString idPar, QString identNumber, bool isFr, QWidget *par) :
     QWidget(par), id(friendsId), login(l), email(em), name(f),
     phone(ph), status(st), countUnreadMessages(um.toInt()), iconName(in), idParent(idPar),
-    identificationNumber(identNumber)
+    identificationNumber(identNumber), isFriend(isFr)
 {
     setFixedSize(200, 60);
 
@@ -114,6 +114,44 @@ void FriendWidget::mousePressEvent(QMouseEvent *event)
     {
         clicked(this);
     }
+}
+
+void FriendWidget::setIsFriend(bool value)
+{
+    isFriend = value;
+}
+
+void FriendWidget::setIsAcceptFriendInvitation(const QString &value)
+{
+    isAcceptFriendInvitation = value;
+    if(value == "true")
+    {
+        this->setStyleSheet("background-color: #fc3;");
+    }
+    else
+    {
+        this->setStyleSheet("background-color: transparent;");
+    }
+}
+
+QString FriendWidget::getIsAcceptFriendInvitation() const
+{
+    return isAcceptFriendInvitation;
+}
+
+bool FriendWidget::getIsEnableInviteToFriend() const
+{
+    return isEnableInviteToFriend;
+}
+
+void FriendWidget::setIsEnableInviteToFriend(bool value)
+{
+    isEnableInviteToFriend = value;
+}
+
+bool FriendWidget::getIsFriend() const
+{
+    return isFriend;
 }
 
 bool FriendWidget::getVideoStatus() const

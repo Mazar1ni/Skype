@@ -45,8 +45,10 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     connect(profileWidget, SIGNAL(clicked()), this, SLOT(clickedProfileWidget()));
 
     QLineEdit* search = new QLineEdit;
+    search->setPlaceholderText("search...");
     search->resize(150, 20);
     search->setMaximumWidth(200);
+    connect(search, SIGNAL(textChanged(QString)), this, SLOT(search(QString)));
 
     QScrollArea* scrollareaFriends = new QScrollArea();
     scrollareaFriends->setWidgetResizable(true);
@@ -108,8 +110,13 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     player = new QMediaPlayer();
     player->setMedia(QUrl("qrc:/Sound/newMessage.wav"));
 
+    // получение от сервера приглашений в друзья
+    SlotSendToServer("/inviteFr/");
+
     // получение от сервера друзей пользователя
-    SlotSendToServer("/4/");
+    QTimer::singleShot(1000, [this](){
+        SlotSendToServer("/4/");
+    });
 
     // получение от сервера последние звонки пользователя
     QTimer::singleShot(2000, [this](){
@@ -152,8 +159,12 @@ void MainWindow::gettingFriends(QString str, QString mode)
         list[5] = "online";
     }
 
+    bool isFriend;
+
+    mode == "potentialFriends" || mode == "inviteToFriend" ? isFriend = false : isFriend = true;
+
     FriendWidget* friendWidget = new FriendWidget(list[0], list[1],
-            list[2], list[3], list[4], list[5], list[6], list[7], id, identificationNumber, this);
+            list[2], list[3], list[4], list[5], list[6], list[7], id, identificationNumber, isFriend, this);
 
     if(mode == "friend")
     {
@@ -170,6 +181,18 @@ void MainWindow::gettingFriends(QString str, QString mode)
     {
         recentVBox->insertWidget(0, friendWidget, Qt::AlignTop);
         recentWidgets.append(friendWidget);
+    }
+    else if(mode == "potentialFriends")
+    {
+        QString s = list[8];
+        friendWidget->setIsEnableInviteToFriend(s.toInt());
+        friendsVBox->addWidget(friendWidget, Qt::AlignTop);
+        potentialFriendsWidgets.append(friendWidget);
+    }
+    else if(mode == "inviteToFriend")
+    {
+        friendWidget->setIsAcceptFriendInvitation("true");
+        friendsVBox->insertWidget(0, friendWidget, Qt::AlignTop);
     }
 
     connect(friendWidget, SIGNAL(clicked(FriendWidget*)), this, SLOT(clickedFriendWidget(FriendWidget*)));
@@ -546,6 +569,64 @@ void MainWindow::clickedProfileWidget()
     rightVBox->addLayout(profileHBox);
 }
 
+void MainWindow::search(QString str)
+{
+    for(int i = 0; i < potentialFriendsWidgets.size(); i++)
+    {
+        for(int j = 0; j < friendsVBox->count(); j++)
+        {
+            if(friendsVBox->itemAt(j)->widget() == potentialFriendsWidgets.at(i))
+            {
+                delete friendsVBox->itemAt(j)->widget();
+            }
+        }
+    }
+    potentialFriendsWidgets.clear();
+
+    if(str == "")
+    {
+        for(int i = 0; i < friendsVBox->count(); i++)
+        {
+            if(dynamic_cast<QLabel* >(friendsVBox->itemAt(i)->widget()))
+            {
+                delete friendsVBox->itemAt(i)->widget();
+            }
+            else
+            {
+                friendsVBox->itemAt(i)->widget()->show();
+            }
+        }
+        return;
+    }
+
+    for(int i = 0; i < friendsVBox->count(); i++)
+    {
+        if(dynamic_cast<QLabel* >(friendsVBox->itemAt(i)->widget()))
+        {
+            delete friendsVBox->itemAt(i)->widget();
+        }
+        else
+        {
+            friendsVBox->itemAt(i)->widget()->hide();
+        }
+    }
+
+    for(int i = 0; i < friendsVBox->count(); i++)
+    {
+        if(dynamic_cast<FriendWidget* >(friendsVBox->itemAt(i)->widget())->
+                name.toLower().indexOf(str.toLower()) != -1)
+        {
+            friendsVBox->itemAt(i)->widget()->show();
+        }
+    }
+    QLabel* line = new QLabel("potential friends");
+    line->setAlignment(Qt::AlignCenter);
+    line->setFixedHeight(20);
+    friendsVBox->addWidget(line, Qt::AlignTop);
+
+    SlotSendToServer("/potentialFriends/" + str);
+}
+
 void MainWindow::noUpCalling(QString name, QString pass)
 {
     SlotSendToServer("/31/" + name + ":" + pass);
@@ -622,11 +703,41 @@ void MainWindow::SlotReadyRead()
 
         gettingFriends(str, "recent");
     }
+    else if(str.indexOf("/potentialFriends/") != -1)
+    {
+        str.remove("/potentialFriends/");
+
+        gettingFriends(str, "potentialFriends");
+    }
     else if(str.indexOf("/newRecent/") != -1)
     {
         str.remove("/newRecent/");
 
         gettingFriends(str, "newRecent");
+    }
+    else if(str.indexOf("/inviteToFriend/") != -1)
+    {
+        str.remove("/inviteToFriend/");
+        gettingFriends(str, "inviteToFriend");
+    }
+    else if(str.indexOf("/acceptInviteToFriend/") != -1)
+    {
+        str.remove("/acceptInviteToFriend/");
+
+        for(int i = 0; i < potentialFriendsWidgets.size(); i++)
+        {
+            if(potentialFriendsWidgets.at(i)->id == str)
+            {
+                potentialFriendsWidgets.at(i)->setIsEnableInviteToFriend(false);
+                potentialFriendsWidgets.at(i)->setIsAcceptFriendInvitation("false");
+                potentialFriendsWidgets.at(i)->setIsFriend(true);
+                friendWidgets.append(potentialFriendsWidgets.at(i));
+                potentialFriendsWidgets.removeAt(i);
+                friendsVBox->insertWidget(friendsVBox->count() - 1, friendWidgets.back(), Qt::AlignTop);
+                clickedFriendWidget(friendWidgets.back());
+                return;
+            }
+        }
     }
     else if(str.indexOf("/getMessages/") != -1)
     {
@@ -1390,6 +1501,60 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     lineMessageBox->addWidget(lineMessage);
     lineMessageBox->addWidget(sendMessage);
 
+    if(friendW->getIsFriend() == false)
+    {
+        QPushButton* addFriendB = new QPushButton;
+        addFriendB->setEnabled(friendW->getIsEnableInviteToFriend());
+        QString qss = ("QPushButton{"
+                                  "font-weight: 700;"
+                                  "text-decoration: none;"
+                                  "padding: .5em 2em;"
+                                  "outline: none;"
+                                  "border: 2px solid;"
+                                  "border-radius: 1px;"
+                                "} "
+                                "QPushButton:!hover { background: rgb(255,255,255); }");
+        addFriendB->setStyleSheet(qss);
+        if(friendW->getIsAcceptFriendInvitation() == "true")
+        {
+            addFriendB->setText("Accept friend invitation");
+            connect(addFriendB, &QPushButton::clicked, [this, friendW](){
+                friendW->setIsEnableInviteToFriend(false);
+                friendW->setIsAcceptFriendInvitation("false");
+                friendW->setIsFriend(true);
+                SlotSendToServer("/acceptInviteToFriends/" + friendW->id);
+                clickedFriendWidget(friendW);
+            });
+            QHBoxLayout* buttonHBox = new QHBoxLayout;
+            QPushButton* noAddFriendB = new QPushButton("Do not accept friend invitation");
+            noAddFriendB->setStyleSheet(qss);
+            connect(noAddFriendB, &QPushButton::clicked, [this, friendW](){
+                for(int i = 0; i < friendsVBox->count(); i++)
+                {
+                    if(friendsVBox->itemAt(i)->widget() == friendW)
+                    {
+                        delete friendsVBox->itemAt(i)->widget();
+                    }
+                }
+                SlotSendToServer("/doNotAcceptInviteToFriends/" + friendW->id);
+                clickedProfileWidget();
+            });
+
+            buttonHBox->addWidget(addFriendB);
+            buttonHBox->addWidget(noAddFriendB);
+            rightVBox->addLayout(buttonHBox);
+        }
+        else
+        {
+            addFriendB->setText("Add as Friend");
+            connect(addFriendB, &QPushButton::clicked, [this, friendW, addFriendB](){
+                friendW->setIsEnableInviteToFriend(false);
+                addFriendB->setEnabled(false);
+                SlotSendToServer("/inviteToFriends/" + friendW->id);
+            });
+            rightVBox->addWidget(addFriendB);
+        }
+    }
     rightVBox->addWidget(scrollarea);
     rightVBox->addLayout(lineMessageBox);
 

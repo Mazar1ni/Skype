@@ -63,6 +63,7 @@ private slots:
     void clickedMicroButton();
     void clickedVideoButton();
     void clickedProfileWidget();
+    void search(QString str);
 
 private:
     QString id;
@@ -87,6 +88,7 @@ private:
     FriendWidget* friendInf = nullptr;
     QList<FriendWidget*> friendWidgets;
     QList<FriendWidget*> recentWidgets;
+    QList<FriendWidget*> potentialFriendsWidgets;
 
     QAudioOutput* AudioOutput;
     QAudioFormat Format;
