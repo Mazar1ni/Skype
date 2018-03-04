@@ -13,5 +13,7 @@
         <file>Icons/micro_on_icon.png</file>
         <file>Icons/checkmark_circled_icon.png</file>
         <file>Icons/close_circled_icon.png</file>
+        <file>Sound/phoneRings.wav</file>
+        <file>Sound/IncomingCall.wav</file>
     </qresource>
 </RCC>

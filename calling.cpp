@@ -4,6 +4,8 @@
 
 calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(parentW), nameRoom(name), pass(passRoom)
 {
+    setWindowFlags(Qt::WindowContextHelpButtonHint);
+
     setMinimumSize(500, 70);
 
     int pos = name.indexOf("-");
@@ -27,16 +29,43 @@ calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(p
     noCallButton->resize(32, 32);
 
     connect(noCallButton, SIGNAL(clicked(bool)), this, SLOT(noUpCalling()));
+
+    player = new QMediaPlayer(this);
+    playlist = new QMediaPlaylist(player);
+
+    player->setPlaylist(playlist);
+    playlist->addMedia(QUrl("qrc:/Sound/IncomingCall.wav"));
+    playlist->setPlaybackMode(QMediaPlaylist::CurrentItemInLoop);
+
+    player->play();
+
+    callTimer = new QTimer;
+    connect(callTimer, &QTimer::timeout, [this](){
+        noUpCalling();
+    });
+    callTimer->start(30000);
 }
 
 void calling::upCalling()
 {
     parent->upCalling(nameRoom, pass);
+    callTimer->stop();
+    callTimer->deleteLater();
+
+    player->stop();
+    player->deleteLater();
+
     deleteLater();
 }
 
 void calling::noUpCalling()
 {
     parent->noUpCalling(nameRoom, pass);
+    callTimer->stop();
+    callTimer->deleteLater();
+
+    player->stop();
+    player->deleteLater();
+
     deleteLater();
 }

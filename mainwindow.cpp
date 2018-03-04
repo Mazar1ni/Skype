@@ -110,6 +110,9 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     player = new QMediaPlayer();
     player->setMedia(QUrl("qrc:/Sound/newMessage.wav"));
 
+    callPlayer = new QMediaPlayer();
+    callPlayer->setMedia(QUrl("qrc:/Sound/phoneRings.wav"));
+
     // получение от сервера приглашений в друзья
     SlotSendToServer("/inviteFr/");
 
@@ -1052,6 +1055,15 @@ void MainWindow::SlotReadyRead()
                 {
                     dynamic_cast<QLabel*>(mainScreenWithButtons->children().back())->setText(list[1]);
                 }
+                if(friendW->getCallStatus() == true)
+                {
+                    clickedFriendWidget(friendW);
+                    endCall();
+                }
+                if(friendW->getIsTryingCall() == "true")
+                {
+                    outOfTheRoom();
+                }
             }
         }
 
@@ -1097,31 +1109,20 @@ void MainWindow::SlotReadyRead()
             }
         }
 
+        if(isVideoCall)
+        {
+            clickedVideoButton();
+        }
+
+        friendInf->setIsTryingCall("false");
+        isStartedCall = false;
+        callPlayer->stop();
+
         SlotSendToServer("/message/" + friendInf->id + "!" + "/beginningCall/");
     }
     else if(buffer.indexOf("/outoftheroom/") != -1)
-    {  
-        for(int i = 0; i < friendWidgets.count(); i++)
-        {
-            if(friendWidgets.at(i)->getCallStatus() == true)
-            {
-                friendWidgets.at(i)->setCallStatus(false);
-                friendWidgets.at(i)->setVideoStatus(false);
-                clickedFriendWidget(friendWidgets.at(i));
-            }
-        }
-        for(int i = 0; i < recentWidgets.count(); i++)
-        {
-            if(recentWidgets.at(i)->getCallStatus() == true)
-            {
-                recentWidgets.at(i)->setCallStatus(false);
-                recentWidgets.at(i)->setVideoStatus(false);
-            }
-        }
-        isOpenedRoom = false;
-        isCreatedRoom = false;
-        QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
-        QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+    {
+        outOfTheRoom();
     }
     else if(str.indexOf("/updateFriendInfo/") != -1)
     {
@@ -1284,6 +1285,35 @@ void MainWindow::updateInfo(QString info)
     }
 }
 
+void MainWindow::outOfTheRoom()
+{
+    for(int i = 0; i < friendWidgets.count(); i++)
+    {
+        if(friendWidgets.at(i)->getCallStatus() == true)
+        {
+            friendWidgets.at(i)->setCallStatus(false);
+            friendWidgets.at(i)->setVideoStatus(false);
+            clickedFriendWidget(friendWidgets.at(i));
+        }
+    }
+    for(int i = 0; i < recentWidgets.count(); i++)
+    {
+        if(recentWidgets.at(i)->getCallStatus() == true)
+        {
+            recentWidgets.at(i)->setCallStatus(false);
+            recentWidgets.at(i)->setVideoStatus(false);
+        }
+    }
+    isOpenedRoom = false;
+    isCreatedRoom = false;
+    isStartedCall = false;
+    callPlayer->stop();
+    friendInf->setIsTryingCall("false");
+
+    QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+    QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+}
+
 void MainWindow::cleanLayout(QLayout* oL)
 {
     QLayoutItem *poLI;
@@ -1422,12 +1452,20 @@ void MainWindow::createMainFriendWidget()
     callButton->move(15, 15);
     callButton->resize(32, 32);
 
-    connect(callButton, SIGNAL(clicked(bool)), this, SLOT(clickedCallButton()));
+    connect(callButton, &QPushButton::clicked, [this](){
+        clickedCallButton();
+        isVideoCall = false;
+    });
 
     QPushButton* videoButton = new QPushButton(buttons);
     videoButton->setIcon(QIcon(":/Icons/video_on_icon.png"));
     videoButton->move(62, 15);
     videoButton->resize(32, 32);
+
+    connect(videoButton, &QPushButton::clicked, [this](){
+        clickedCallButton();
+        isVideoCall = true;
+    });
 
     hBox->addWidget(mainScreenWithButtons);
     hBox->addWidget(buttons);
@@ -1563,9 +1601,16 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 
 void MainWindow::clickedCallButton()
 {
+    if(friendInf->getIsFriend() == false)
+    {
+        QMessageBox msgBox;
+        msgBox.setText("This user is not your friend");
+        msgBox.exec();
+        return;
+    }
     for(int i = 0; i < friendWidgets.count(); i++)
     {
-        if(friendWidgets.at(i)->getCallStatus() == true)
+        if(friendWidgets.at(i)->getCallStatus() == true || isStartedCall == true)
         {
             QMessageBox::critical(NULL,QObject::tr("Error"),
                                   "Unable to start a new call because another call has already been initiated");
@@ -1580,6 +1625,9 @@ void MainWindow::clickedCallButton()
 
         DeviceOutput = AudioOutput->start();
         startRecord();
+        isStartedCall = true;
+        callPlayer->play();
+        friendInf->setIsTryingCall("true");
     }
     else
     {
@@ -1591,6 +1639,14 @@ void MainWindow::clickedCallButton()
 
 void MainWindow::clickedSendMessageButton()
 {
+    if(lineMessage->text() != "" && friendInf->getIsFriend() == false)
+    {
+        lineMessage->clear();
+        QMessageBox msgBox;
+        msgBox.setText("This user is not your friend");
+        msgBox.exec();
+        return;
+    }
     if(lineMessage->text() != "")
     {
         SlotSendToServer("/message/" + friendInf->id + "!" + lineMessage->text());

@@ -39,6 +39,7 @@ public:
     void imgWin(QByteArray buff);
     void turnVideoBroadcast(int idSender, bool onOff);
     void updateInfo(QString info);
+    void outOfTheRoom();
 
 signals:
     void startRecord();
@@ -101,12 +102,16 @@ private:
     bool isMicro = true;
     bool isVideo = false;
 
+    bool isVideoCall;
+    bool isStartedCall = false;
+
     QString numberBlockMessage = "1";
 
     Sox* sox;
     QDate Date;
 
     QMediaPlayer* player;
+    QMediaPlayer* callPlayer;
 
     QList<Message*> messageWidgets;
 

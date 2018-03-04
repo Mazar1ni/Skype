@@ -2,6 +2,9 @@
 #define CALLING_H
 
 #include <QWidget>
+#include <QTimer>
+#include <QMediaPlayer>
+#include <QMediaPlaylist>
 #include "mainwindow.h"
 
 class calling : public QWidget
@@ -19,6 +22,9 @@ private:
     MainWindow* parent;
     QString nameRoom;
     QString pass;
+    QTimer* callTimer;
+    QMediaPlayer* player;
+    QMediaPlaylist* playlist;
 };
 
 #endif // CALLING_H

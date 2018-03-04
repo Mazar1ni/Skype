@@ -34,6 +34,8 @@ public:
     void setIsEnableInviteToFriend(bool value);
     QString getIsAcceptFriendInvitation() const;
     void setIsAcceptFriendInvitation(const QString &value);
+    QString getIsTryingCall() const;
+    void setIsTryingCall(const QString &value);
 
 public slots:
     void incrementTimeSec();
@@ -71,6 +73,7 @@ public:
     QIcon icon;
     bool callStatus = false;
     bool videoStatus = false;
+    QString isTryingCall = "false";
 };
 
 #endif // FRIENDWIDGET_H

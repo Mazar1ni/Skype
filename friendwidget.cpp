@@ -116,6 +116,16 @@ void FriendWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
+QString FriendWidget::getIsTryingCall() const
+{
+    return isTryingCall;
+}
+
+void FriendWidget::setIsTryingCall(const QString &value)
+{
+    isTryingCall = value;
+}
+
 void FriendWidget::setIsFriend(bool value)
 {
     isFriend = value;
