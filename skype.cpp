@@ -4,12 +4,13 @@
 #include <QDebug>
 #include "sox.h"
 #include "webcam.h"
+#include "updater.h"
 
 Skype::Skype()
 {
-    Socket = new QTcpSocket(this);
-    Authentication* auth = new Authentication(Socket, this);
-    auth->show();
+    Updater* updater = new Updater;
+    updater->show();
+    connect(updater, SIGNAL(endUpdate()), this, SLOT(authentication()));
 }
 
 void Skype::Connected(QString str)
@@ -36,4 +37,11 @@ void Skype::Connected(QString str)
     connect(webCam, SIGNAL(sendCamera(QByteArray)),
             Main, SLOT(sendCamera(QByteArray)));
 
+}
+
+void Skype::authentication()
+{
+    Socket = new QTcpSocket(this);
+    Authentication* auth = new Authentication(Socket, this);
+    auth->show();
 }

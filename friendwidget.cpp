@@ -116,6 +116,16 @@ void FriendWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
+QString FriendWidget::getId() const
+{
+    return id;
+}
+
+QString FriendWidget::getStatus() const
+{
+    return status;
+}
+
 QString FriendWidget::getIsTryingCall() const
 {
     return isTryingCall;

@@ -15,5 +15,7 @@
         <file>Icons/close_circled_icon.png</file>
         <file>Sound/phoneRings.wav</file>
         <file>Sound/IncomingCall.wav</file>
+        <file>Icons/skype_icon.ico</file>
+        <file>downloadIndicator.gif</file>
     </qresource>
 </RCC>

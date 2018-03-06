@@ -17,6 +17,7 @@ public:
 
 public slots:
     void Connected(QString str);
+    void authentication();
 
 private:
     QTcpSocket* Socket;

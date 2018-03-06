@@ -77,7 +77,6 @@ void Authentication::slotSendToServer()
     out << textLogin->text() + "!" + textPass->text() + "/1/";
 
     Socket->write(arrBlock);
-
 }
 
 void Authentication::OpenSettings()

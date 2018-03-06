@@ -12,6 +12,8 @@
 #include <QDate>
 #include <QCloseEvent>
 #include <QLabel>
+#include <QSystemTrayIcon>
+#include <QAction>
 
 class Sox;
 class FriendWidget;
@@ -65,6 +67,7 @@ private slots:
     void clickedVideoButton();
     void clickedProfileWidget();
     void search(QString str);
+    void iconActivated(QSystemTrayIcon::ActivationReason reason);
 
 private:
     QString id;
@@ -123,6 +126,8 @@ private:
     QHBoxLayout* camAndIconLayout;
     QLabel* iconFriend;
     QLabel* profileIcon;
+
+    QSystemTrayIcon* trayIcon;
 
 };
 

@@ -36,6 +36,8 @@ public:
     void setIsAcceptFriendInvitation(const QString &value);
     QString getIsTryingCall() const;
     void setIsTryingCall(const QString &value);
+    QString getStatus() const;
+    QString getId() const;
 
 public slots:
     void incrementTimeSec();
@@ -50,7 +52,7 @@ signals:
     void clicked(FriendWidget*);
     void updateTimeCall(QString);
 
-public:
+private:
     QString id;
     QString login;
     QString email;
