@@ -7,14 +7,14 @@
 #include <QApplication>
 #include <QSettings>
 #include <QBoxLayout>
+#include <QTimer>
 
 Updater::Updater(QWidget *parent) : QWidget(parent)
 {
     this->resize(400, 200);
 
     socket = new QTcpSocket;
-    //QHostAddress(text.left(pos))
-    socket->connectToHost("localhost", (qint16)7072);
+    socket->connectToHost("37.230.116.56", 7072);
 
     connect(socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
 
@@ -36,9 +36,11 @@ Updater::Updater(QWidget *parent) : QWidget(parent)
 
     infoLabel->setText("check for updates ...");
 
-    QSettings settings("version.conf", QSettings::IniFormat);
+    QSettings* settings = new QSettings("version.conf", QSettings::IniFormat);
 
-    slotSendToServer("/version/" + settings.value("version", "1.0.0.0").toString());
+    QTimer::singleShot(5000, [this, settings](){
+        slotSendToServer("/version/" + settings->value("version", "1.0.0.0").toString());
+    });
 }
 
 void Updater::downloadFile()
@@ -76,6 +78,8 @@ void Updater::downloadFile()
     {
         mainPath = QDir::currentPath();
         checkForExistenceFile(mainPath);
+
+        QThread::msleep(30);
 
         slotSendToServer("/wellHow/");
     }
@@ -118,7 +122,7 @@ void Updater::slotReadyRead()
     if(str.indexOf("/match/") != -1)
     {
         endUpdate();
-        deleteLater();
+        disconnect();
     }
     else if(str.indexOf("/doNotMatch/") != -1)
     {
@@ -138,7 +142,8 @@ void Updater::slotReadyRead()
             QFileInfo fileInfo(testFile);
             QDateTime d;
             d = fileInfo.lastModified();
-            if(lastModified != d.toString("dd MM yyyy"))
+            if(QDate::fromString(lastModified, "dd MM yyyy") >
+                    QDate::fromString(d.toString("dd MM yyyy"), "dd MM yyyy"))
             {
                 testFile.rename(testFile.fileName() + ".old");
                 updateFiles.append(path);
@@ -148,7 +153,6 @@ void Updater::slotReadyRead()
         {
             updateFiles.append(path);
         }
-        QThread::msleep(15);
     }
     else if(str.indexOf("/wellHow/") != -1)
     {
@@ -175,6 +179,8 @@ void Updater::slotReadyRead()
 
         QProcess::startDetached("Skype.exe", QStringList() << "-clear");
         QApplication::quit();
+
+        disconnect();
     }
     else if(buffer.indexOf("endFile") != -1)
     {
@@ -199,4 +205,10 @@ void Updater::slotSendToServer(QString mess)
 
     socket->write(arrBlock);
     socket->flush();
+}
+
+void Updater::disconnect()
+{
+    socket->close();
+    deleteLater();
 }

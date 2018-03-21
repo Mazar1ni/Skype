@@ -23,6 +23,7 @@ public slots:
 private slots:
     void slotReadyRead();
     void slotSendToServer(QString mess);
+    void disconnect();
 
 private:
     QTcpSocket* socket;

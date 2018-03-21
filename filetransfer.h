@@ -12,7 +12,7 @@ class FileTransfer : public QThread
 public:
     explicit FileTransfer(QString id, QString autNum, QString type, QString fileN = "", QObject *parent = nullptr);
     void run();
-    void endFile(QByteArray buffer);
+    void endFile();
     void disconnect();
 
 signals:
@@ -34,7 +34,11 @@ private:
     QString identificationNumber;
     QTcpSocket* socket;
     QString fileName;
-    QFile* uploadFile;
+    QFile uploadFile;
+
+    QString sizeFile;
+    int currentSizeFile = 0;
+    QString typeFile;
 };
 
 #endif // FILETRANSFER_H

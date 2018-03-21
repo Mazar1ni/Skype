@@ -104,10 +104,7 @@ void Sox::removeNoise()
         buff += destinationFile.readAll();
         destinationFile.close();
         destinationFile.deleteLater();
-        //socket->write(buff);
         emit(sendSound(buff));
-//        QMetaObject::invokeMethod(window, "sendSound", Qt::AutoConnection,
-//                                  Q_ARG(QByteArray, buff));
     }
 }
 

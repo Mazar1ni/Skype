@@ -7,15 +7,23 @@
 WebCam::WebCam(QObject *parent) : QAbstractVideoSurface(parent)
 {
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
-    foreach (const QCameraInfo &cameraInfo, cameras) {
-        qDebug() << cameraInfo.description();
-        camera = new QCamera(cameraInfo);
-    }
-    camera->setCaptureMode(QCamera::CaptureVideo);
+    if(cameras.count() > 0)
+    {
+        isCamera = true;
+        foreach (const QCameraInfo &cameraInfo, cameras) {
+            qDebug() << cameraInfo.description();
+            camera = new QCamera(cameraInfo);
+        }
+        camera->setCaptureMode(QCamera::CaptureVideo);
 
-    camera->setViewfinder(this);
-    connect(this, SIGNAL(frameAvailable(QImage)), this, SLOT(handleFrame(QImage)));
-    camera->start();
+        camera->setViewfinder(this);
+        connect(this, SIGNAL(frameAvailable(QImage)), this, SLOT(handleFrame(QImage)));
+        camera->start();
+    }
+    else
+    {
+        isCamera = false;
+    }
 }
 
 QList<QVideoFrame::PixelFormat> WebCam::supportedPixelFormats(
@@ -96,4 +104,9 @@ void WebCam::handleFrame(QImage img)
     ds << img.height();
     ds.writeRawData((char*)img.bits(), img.byteCount());
     sendCamera("/camera/" + ba + "/end/");
+}
+
+bool WebCam::getIsCamera() const
+{
+    return isCamera;
 }

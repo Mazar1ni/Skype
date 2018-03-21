@@ -47,6 +47,7 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
                 break;
             }
         }
+        isFinalClosing = true;
         close();
     });
 
@@ -302,11 +303,12 @@ void MainWindow::upCalling(QString name, QString pass)
             if(nameFriend == friendWidgets[i]->getLogin())
             {
                 clickedFriendWidget(friendWidgets[i]);
-                QThread::msleep(30);
                 break;
             }
         }
     }
+
+    QThread::msleep(30);
 
     SlotSendToServer("/30/" + name + ":" + pass);
     isOpenedRoom = true;
@@ -394,6 +396,12 @@ void MainWindow::clickedMicroButton()
 
 void MainWindow::clickedVideoButton()
 {
+    if(webCam->getIsCamera() == false)
+    {
+        QMessageBox::critical(NULL,QObject::tr("Error"), "Webcam is not connected!");
+        return;
+    }
+
     if(isVideo == true)
     {
         dynamic_cast<QPushButton*>(QObject::sender())->setIcon(QIcon(":/Icons/video_off_icon.png"));
@@ -418,7 +426,14 @@ void MainWindow::clickedProfileWidget()
     QVBoxLayout* profileLeftVBox = new QVBoxLayout;
 
     profileIcon = new QLabel;
-    profileIcon->setPixmap(QIcon("IconFriends/" + id + "!" + iconName).pixmap(256, 256));
+    if(iconName == "standart_icon.png")
+    {
+        profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(256, 256));
+    }
+    else
+    {
+        profileIcon->setPixmap(QIcon("IconFriends/" + id + "!" + iconName).pixmap(256, 256));
+    }
     profileIcon->setMargin(30);
 
     QPushButton* changeIcon = new QPushButton;
@@ -811,7 +826,7 @@ void MainWindow::SlotReadyRead()
             QString status = listMessage[6];
 
             if(numberBlockMessage != "1"
-                    && lastDate == QDate::fromString(date,"dd MMMM yyyy") && lastDateBool == false)
+                    && lastDate == QDate::fromString(date,"dd MM yyyy") && lastDateBool == false)
             {
                 // удаляем streach
                 if(numberBlockMessage == "2")
@@ -824,8 +839,7 @@ void MainWindow::SlotReadyRead()
 
             if(lastDateBool == false)
             {
-
-                lastDate = QDate::fromString(date,"dd MMMM yyyy");
+                lastDate = QDate::fromString(date,"dd MM yyyy");
                 lastDateBool = true;
             }
 
@@ -859,29 +873,30 @@ void MainWindow::SlotReadyRead()
                 Message* m = new Message(message, time, Message::right);
                 if(numberBlockMessage == "1")
                 {
-                    if(messageVBox->count() == 0 || Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    if(messageVBox->count() == 1 || Date != QDate::fromString(date,"dd MM yyyy"))
                     {
-                        messageVBox->addWidget(new QLabel(date));
-                        Date = QDate::fromString(date,"dd MMMM yyyy");
+                        messageVBox->addWidget(new QLabel(
+                                                   QDate::fromString(date,"dd MM yyyy").toString("dd MMMM yyyy")));
+                        Date = QDate::fromString(date,"dd MM yyyy");
                     }
                     messageWidgets.append(m);
                     messageVBox->addWidget(m);
                 }
                 else
                 {
-                    if(Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    if(Date != QDate::fromString(date,"dd MM yyyy"))
                     {
                         if(first == true)
                         {
                             messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
-                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            Date = QDate::fromString(date,"dd MM yyyy");
                             scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
                                                                       + 13);
                             first = false;
                         }
                         else if(first == false)
                         {
-                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            Date = QDate::fromString(date,"dd MM yyyy");
                             first = true;
                         }
                     }
@@ -904,29 +919,30 @@ void MainWindow::SlotReadyRead()
                 Message* m = new Message(message, time, Message::left);
                 if(numberBlockMessage == "1")
                 {
-                    if(messageVBox->count() == 0 || Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    if(messageVBox->count() == 1 || Date != QDate::fromString(date,"dd MM yyyy"))
                     {
-                        messageVBox->addWidget(new QLabel(date));
-                        Date = QDate::fromString(date,"dd MMMM yyyy");
+                        messageVBox->addWidget(new QLabel(
+                                                   QDate::fromString(date,"dd MM yyyy").toString("dd MMMM yyyy")));
+                        Date = QDate::fromString(date,"dd MM yyyy");
                     }
                     messageWidgets.append(m);
                     messageVBox->addWidget(m);
                 }
                 else
                 {
-                    if(Date != QDate::fromString(date,"dd MMMM yyyy"))
+                    if(Date != QDate::fromString(date,"dd MM yyyy"))
                     {
                         if(first == true)
                         {
                             messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
-                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            Date = QDate::fromString(date,"dd MM yyyy");
                             scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
                                                                       + 13);
                             first = false;
                         }
                         else if(first == false)
                         {
-                            Date = QDate::fromString(date,"dd MMMM yyyy");
+                            Date = QDate::fromString(date,"dd MM yyyy");
                             first = true;
                         }
                     }
@@ -958,7 +974,7 @@ void MainWindow::SlotReadyRead()
 
             if(numberBlockMessage != "1" && i + 1 == list.count() - 1)
             {
-                Date = QDate::fromString(date,"dd MMMM yyyy");
+                Date = QDate::fromString(date,"dd MM yyyy");
                 messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
                 scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
                                                           + 13);
@@ -1015,9 +1031,9 @@ void MainWindow::SlotReadyRead()
 
         if(friendInf != nullptr && (friendInf->getId() == idSender || id == idSender))
         {
-            if(Date != QDate::fromString(date,"dd MMMM yyyy"))
+            if(Date != QDate::fromString(date,"dd MM yyyy"))
             {
-                Date = QDate::fromString(date,"dd MMMM yyyy");
+                Date = QDate::fromString(date,"dd MM yyyy");
                 messageVBox->addWidget(new QLabel(Date.toString("dd MMMM yyyy")));
             }
             if(idChat != id)
@@ -1128,20 +1144,12 @@ void MainWindow::SlotReadyRead()
     {
         str.remove("/beginnigCall/");
 
-        if(friendInf->getId() == str)
+        for(int i = 0; i < friendWidgets.count(); i++)
         {
-            createCallWidget();
-            friendInf->setCallStatus(true);
-        }
-        else
-        {
-            for(int i = 0; i < friendWidgets.count(); i++)
+            if(friendWidgets[i]->getId() == str)
             {
-                if(friendWidgets[i]->getId() == str)
-                {
-                    friendWidgets[i]->setCallStatus(true);
-                    clickedFriendWidget(friendWidgets[i]);
-                }
+                friendWidgets[i]->setCallStatus(true);
+                clickedFriendWidget(friendWidgets[i]);
             }
         }
 
@@ -1331,10 +1339,12 @@ void MainWindow::updateInfo(QString info)
 
 void MainWindow::outOfTheRoom()
 {
+    qDebug("out of the room");
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true)
         {
+            qDebug("friend");
             friendWidgets.at(i)->setCallStatus(false);
             friendWidgets.at(i)->setVideoStatus(false);
             clickedFriendWidget(friendWidgets.at(i));
@@ -1344,6 +1354,7 @@ void MainWindow::outOfTheRoom()
     {
         if(recentWidgets.at(i)->getCallStatus() == true)
         {
+            qDebug("recent");
             recentWidgets.at(i)->setCallStatus(false);
             recentWidgets.at(i)->setVideoStatus(false);
         }
@@ -1507,6 +1518,11 @@ void MainWindow::createMainFriendWidget()
     videoButton->resize(32, 32);
 
     connect(videoButton, &QPushButton::clicked, [this](){
+        if(webCam->getIsCamera() == false)
+        {
+            QMessageBox::critical(NULL,QObject::tr("Error"), "Webcam is not connected!");
+            return;
+        }
         clickedCallButton();
         isVideoCall = true;
     });
@@ -1519,10 +1535,13 @@ void MainWindow::createMainFriendWidget()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if(this->isVisible())
+    if(isFinalClosing == false)
     {
-        event->ignore();
-        this->hide();
+        if(this->isVisible())
+        {
+            event->ignore();
+            this->hide();
+        }
     }
 }
 

@@ -1,7 +1,10 @@
 #include "profilewidget.h"
 #include "filetransfer.h"
 #include <QIcon>
+#include <QPixmap>
 #include <QMouseEvent>
+#include <QApplication>
+#include <QStyle>
 
 ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QString identNumber, QWidget *parent)
     : QWidget(parent), name(n), iconName(iconN), id(i), identifiacationNumber(identNumber)

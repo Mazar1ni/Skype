@@ -14,6 +14,7 @@ public:
 
     QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
     bool present(const QVideoFrame &frame);
+    bool getIsCamera() const;
 
 signals:
     void frameAvailable(QImage frame);
@@ -27,6 +28,7 @@ public slots:
 private:
     QCamera* camera;
     bool isTransmit = false;
+    bool isCamera;
     MainWindow* par;
 };
 

@@ -17,11 +17,10 @@ void deleteOldFiles(QString path)
         {
             deleteOldFiles(i_file.path() + "/" + i_file.fileName() + "/");
         }
-        else if(i_file.fileName().indexOf(".old") != -1)
+        else if(i_file.suffix() == "old")
         {
             QFile file(path + i_file.fileName());
             file.remove();
-            QThread::msleep(20);
         }
     }
 }
@@ -32,10 +31,7 @@ int main(int argc, char *argv[])
 
     if(argc > 1)
     {
-        if(argv[1] == "-clear")
-        {
-            deleteOldFiles(QDir::currentPath());
-        }
+        deleteOldFiles(QDir::currentPath() + '/');
     }
 
     Skype* skype = new Skype;

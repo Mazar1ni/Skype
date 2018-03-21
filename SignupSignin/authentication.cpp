@@ -88,33 +88,23 @@ void Authentication::OpenSettings()
 
 void Authentication::Connect()
 {
+    if(isConnect == true)
+    {
+        return;
+    }
     if(!Socket->isOpen())
     {
-        // открытие файла настроек для получения IP и Port
-        QFile in(FileName);
-        QString text;
-        int pos;
-        if(in.open(QIODevice::ReadOnly))
-        {
-            QTextStream stream(&in);
-            text = stream.readAll();
-            pos = text.indexOf(":");
-
-            // инициализаия сокета
-            //QHostAddress(text.left(pos))
-            Socket->connectToHost("localhost", (qint16)text.mid(pos+1).toInt());
-            in.close();
-
-            connect(Socket, SIGNAL(connected()), SLOT(slotConnected()));
-            connect(Socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
-            connect(Socket, SIGNAL(error(QAbstractSocket::SocketError)),
-            this, SLOT(slotError(QAbstractSocket::SocketError)));
-        }
+        Socket->connectToHost("37.230.116.56", 7070);
+        connect(Socket, SIGNAL(connected()), SLOT(slotConnected()));
+        connect(Socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
+        connect(Socket, SIGNAL(error(QAbstractSocket::SocketError)),
+        this, SLOT(slotError(QAbstractSocket::SocketError)));
     }
     QEventLoop loop;
     QTimer::singleShot(1000, &loop, SLOT(quit()));
     loop.exec();
     slotSendToServer();
+    isConnect = true;
 }
 
 void Authentication::slotConnected()
@@ -144,6 +134,7 @@ void Authentication::slotReadyRead()
     {
         QMessageBox::critical(NULL,QObject::tr("Error"), "This user is already in the network!");
     }
+    isConnect = false;
 }
 
 void Authentication::slotError(QAbstractSocket::SocketError err)

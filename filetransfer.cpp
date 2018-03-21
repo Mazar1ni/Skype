@@ -7,7 +7,7 @@ FileTransfer::FileTransfer(QString id, QString autNum, QString type, QString fil
     : QThread(parent), idUser(id), identificationNumber(autNum), fileName(fileN)
 {
     socket = new QTcpSocket;
-    socket->connectToHost("localhost", (qint16)7071);
+    socket->connectToHost("37.230.116.56", 7071);
 
     connect(socket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 
@@ -17,7 +17,7 @@ FileTransfer::FileTransfer(QString id, QString autNum, QString type, QString fil
 
     if(type == "uploadMainIcon")
     {
-        QTimer::singleShot(2000, this, SLOT(slotDataTransferMainIcon()));
+        slotDataTransferMainIcon();
     }
     else if(type == "downloadFriendIcon")
     {
@@ -42,11 +42,9 @@ void FileTransfer::run()
     exec();
 }
 
-void FileTransfer::endFile(QByteArray buffer)
+void FileTransfer::endFile()
 {
-    uploadFile->write(buffer);
-    uploadFile->close();
-    uploadFile->deleteLater();
+    uploadFile.close();
 }
 
 void FileTransfer::disconnect()
@@ -70,21 +68,6 @@ void FileTransfer::slotReadyRead()
     {
         disconnect();
     }
-    else if(buffer.indexOf("endFileIcon") != -1)
-    {
-        buffer.remove(buffer.size() - 12, 11);
-        endFile(buffer);
-        updateIconFriend();
-        //QFile("IconFriends/" + fileName).remove();
-        disconnect();
-    }
-    else if(buffer.indexOf("endFile") != -1)
-    {
-        buffer.remove(buffer.size() - 8, 7);
-        endFile(buffer);
-        //QFile("IconFriends/" + fileName).remove();
-        disconnect();
-    }
     else if(str.indexOf("/successTransferMainIcon/") != -1)
     {
         sendFriendsUpdateIcon();
@@ -95,9 +78,33 @@ void FileTransfer::slotReadyRead()
         sendFriendFileMessage();
         disconnect();
     }
+    else if(str.indexOf("/sizeFile/") != -1)
+    {
+        str.remove("/sizeFile/");
+        sizeFile = str;
+    }
     else
     {
-        uploadFile->write(buffer);
+        uploadFile.write(buffer);
+
+        currentSizeFile += buffer.size();
+
+        if(currentSizeFile == sizeFile.toInt())
+        {
+            if(typeFile == "endFileIcon")
+            {
+                endFile();
+                updateIconFriend();
+                //QFile("IconFriends/" + fileName).remove();
+                disconnect();
+            }
+            else if(typeFile == "endFile")
+            {
+                endFile();
+                //QFile("IconFriends/" + fileName).remove();
+                disconnect();
+            }
+        }
     }
 }
 
@@ -114,16 +121,22 @@ void FileTransfer::slotSendServer(QString str)
 
 void FileTransfer::slotDataAcquisitionFriendIcon()
 {
-    uploadFile = new QFile("IconFriends/" + fileName);
-    uploadFile->open(QFile::WriteOnly);
+    uploadFile.setFileName("IconFriends/" + fileName);
+    uploadFile.open(QIODevice::WriteOnly | QIODevice::Unbuffered);
     slotSendServer("/informationFileAcquisitionIcon/" + fileName);
+
+    typeFile = "endFileIcon";
+    currentSizeFile = 0;
 }
 
 void FileTransfer::slotDataAcquisitionMainIcon()
 {
-    uploadFile = new QFile("IconFriends/" + fileName);
-    uploadFile->open(QFile::WriteOnly);
+    uploadFile.setFileName("IconFriends/" + fileName);
+    uploadFile.open(QIODevice::WriteOnly | QIODevice::Unbuffered);
     slotSendServer("/informationFileAcquisitionIcon/" + fileName);
+
+    typeFile = "endFileIcon";
+    currentSizeFile = 0;
 }
 
 void FileTransfer::slotDataTransferMainIcon()
@@ -131,41 +144,46 @@ void FileTransfer::slotDataTransferMainIcon()
     QString filePath = QFileDialog::getOpenFileName(0,
                                                  "Open File",
                                                  "",
-                                                 "*.jpeg, *.jpg, *.png");
+                                                 "*.jpeg *.jpg *.png");
 
     QString nameFile = filePath.mid(filePath.lastIndexOf("/") + 1);
 
-    slotSendServer("/informationFileIcon/" + nameFile);
-    QThread::msleep(100);
-
     QFile file(filePath);
-    file.open(QFile::ReadOnly);
+    file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
     QByteArray dataFile = file.readAll();
 
-    socket->write(dataFile + "mainIconEndFile");
+    slotSendServer("/informationFileIcon/" + nameFile + "~" + QString::number(dataFile.size()));
+    QThread::msleep(100);
+
+    socket->write(dataFile);
+    socket->flush();
 }
 
 void FileTransfer::slotUploadFile()
 {
     QString nameFile = fileName.mid(fileName.lastIndexOf("/") + 1);
 
-    slotSendServer("/informationUploadFile/" + nameFile);
-    QThread::msleep(100);
-
     fileName.remove(0, 1);
 
     QFile file(fileName);
-    file.open(QFile::ReadOnly);
+    file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
     QByteArray dataFile = file.readAll();
 
-    socket->write(dataFile + "uploadEndFile");
+    slotSendServer("/informationUploadFile/" + nameFile + "~" + QString::number(dataFile.size()));
+    QThread::msleep(100);
+
+    socket->write(dataFile);
+    socket->flush();
 }
 
 void FileTransfer::slotDownloadFile()
 {
     QString directoryPath = QFileDialog::getExistingDirectory(0, "Directory Dialog", "");
 
-    uploadFile = new QFile(directoryPath + "/" + fileName.mid(fileName.indexOf("!") + 1));
-    uploadFile->open(QFile::WriteOnly);
+    uploadFile.setFileName(directoryPath + "/" + fileName.mid(fileName.indexOf("!") + 1));
+    uploadFile.open(QIODevice::WriteOnly | QIODevice::Unbuffered);
     slotSendServer("/informationAcquisitionFile/" + fileName);
+
+    typeFile = "endFile";
+    currentSizeFile = 0;
 }

@@ -129,6 +129,8 @@ private:
 
     QSystemTrayIcon* trayIcon;
 
+    bool isFinalClosing = false;
+
 };
 
 #endif // MAINWINDOW_H

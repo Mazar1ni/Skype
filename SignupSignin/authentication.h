@@ -40,7 +40,7 @@ private:
     QPushButton* btnConnect;
     QPushButton* btnSettings;
     SettingsConnection* Settings;
-    const QString FileName = "SettingsConnection.txt";
+    bool isConnect = false;
 
 };
 

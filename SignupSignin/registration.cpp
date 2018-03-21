@@ -9,6 +9,7 @@
 #include <QEventLoop>
 #include <QTimer>
 #include <QMessageBox>
+#include <QHostAddress>
 
 Registration::Registration(QWidget *parent) : QWidget(parent)
 {
@@ -264,23 +265,8 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
 
         if(!socket->isOpen())
         {
-            // открытие файла настроек для получения IP и Port
-            QFile in(FileName);
-            QString text;
-            int pos;
-            if(in.open(QIODevice::ReadOnly))
-            {
-                QTextStream stream(&in);
-                text = stream.readAll();
-                pos = text.indexOf(":");
-
-                // инициализаия сокета
-                //QHostAddress(text.left(pos))
-                socket->connectToHost("localhost", (qint16)text.mid(pos+1).toInt());
-                in.close();
-
-                connect(socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
-            }
+            socket->connectToHost("37.230.116.56", 7070);
+            connect(socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
         }
 
         QEventLoop loop;
@@ -354,7 +340,7 @@ void Registration::slotReadyRead()
     }
     else if(str.indexOf("/successfully/") != -1)
     {
-        QMessageBox::critical(NULL,QObject::tr("Successfully"), "You have successfully registered!");
+        QMessageBox::information(NULL,QObject::tr("Successfully"), "You have successfully registered!");
         deleteLater();
     }
 }
