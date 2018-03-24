@@ -181,6 +181,8 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
     QLabel* registrationPassLabel = new QLabel("Password");
     QLineEdit* registrationPass = new QLineEdit;
     registrationPass->setPlaceholderText("select a strong password");
+    registrationPass->setEchoMode(QLineEdit::Password);
+    registrationPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
     registrationPassVBox->addStretch();
     registrationPassVBox->addWidget(registrationPassLabel);
     registrationPassVBox->addWidget(registrationPass);
@@ -188,7 +190,9 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
     QVBoxLayout* registrationRepeatPassVBox = new QVBoxLayout;
     QLabel* registrationRepeatPassLabel = new QLabel("Re-peat Password");
     QLineEdit* registrationRepeatPass = new QLineEdit;
-    registrationRepeatPass->setPlaceholderText("pe-reat password");
+    registrationRepeatPass->setPlaceholderText("re-peat password");
+    registrationRepeatPass->setEchoMode(QLineEdit::Password);
+    registrationRepeatPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
     registrationRepeatPassVBox->addStretch();
     registrationRepeatPassVBox->addWidget(registrationRepeatPassLabel);
     registrationRepeatPassVBox->addWidget(registrationRepeatPass);

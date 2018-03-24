@@ -1,7 +1,6 @@
 #include <windows.h>
 
 ID_ICON ICON DISCARDABLE "Icons/Skype_icon.ico"
-CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "winadmin.exe.manifest"
 
 #define VER_FILEVERSION             1,0,0,0
 #define VER_FILEVERSION_STR         "1.0.0.0\0"

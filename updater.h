@@ -32,6 +32,7 @@ private:
     QString mainPath;
     QLabel* infoLabel;
     QMovie movie;
+    bool isConnected = false;
 
 };
 

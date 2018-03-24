@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QBoxLayout>
 #include <QTimer>
+#include <QMessageBox>
 
 Updater::Updater(QWidget *parent) : QWidget(parent)
 {
@@ -40,6 +41,14 @@ Updater::Updater(QWidget *parent) : QWidget(parent)
 
     QTimer::singleShot(5000, [this, settings](){
         slotSendToServer("/version/" + settings->value("version", "1.0.0.0").toString());
+    });
+
+    QTimer::singleShot(10000, [this](){
+        if(!isConnected)
+        {
+            QMessageBox::critical(NULL,QObject::tr("Error"), "Server is temporarily unavailable!");
+            disconnect();
+        }
     });
 }
 
@@ -121,11 +130,13 @@ void Updater::slotReadyRead()
 
     if(str.indexOf("/match/") != -1)
     {
+        isConnected = true;
         endUpdate();
         disconnect();
     }
     else if(str.indexOf("/doNotMatch/") != -1)
     {
+        isConnected = true;
         infoLabel->setText("download updates ...");
     }
     else if(str.indexOf("/fileTest/") != -1)

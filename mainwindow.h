@@ -6,8 +6,6 @@
 #include <QBoxLayout>
 #include <QLineEdit>
 #include <QTableWidget>
-#include <QtMultimedia/QAudioOutput>
-#include <QIODevice>
 #include <QScrollArea>
 #include <QDate>
 #include <QCloseEvent>
@@ -15,7 +13,7 @@
 #include <QSystemTrayIcon>
 #include <QAction>
 
-class Sox;
+class Audio;
 class FriendWidget;
 class Message;
 class QMediaPlayer;
@@ -26,7 +24,7 @@ class MainWindow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MainWindow(QTcpSocket* Sock, QString str, Sox* Sox, WebCam* wb, QWidget *parent = nullptr);
+    explicit MainWindow(QTcpSocket* Sock, QString str, Audio* a, WebCam* wb, QWidget *parent = nullptr);
 
     void SlotSendToServer(QString str);
     void gettingFriends(QString str, QString mode);
@@ -41,18 +39,19 @@ public:
     void imgWin(QByteArray buff);
     void turnVideoBroadcast(int idSender, bool onOff);
     void updateInfo(QString info);
-    void outOfTheRoom();
 
 signals:
     void startRecord();
     void output(QByteArray buffer);
     void stopRecord();
-    void removeNoise();
     void startRecordVideo();
+    void connectSoundServer(QString idUser, QString identificator);
 
 public slots:
     void sendSound(QByteArray buff);
     void sendCamera(QByteArray buff);
+    void outOfTheRoom();
+    void connectedAudio();
 
 private slots:
     void CreateRoom();
@@ -68,6 +67,7 @@ private slots:
     void clickedProfileWidget();
     void search(QString str);
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
+    void clickedSettings();
 
 private:
     QString id;
@@ -94,10 +94,6 @@ private:
     QList<FriendWidget*> recentWidgets;
     QList<FriendWidget*> potentialFriendsWidgets;
 
-    QAudioOutput* AudioOutput;
-    QAudioFormat Format;
-    QIODevice* DeviceOutput = nullptr;
-
     bool isCreatedRoom = false;
     bool isOpenedRoom = false;
 
@@ -110,7 +106,7 @@ private:
 
     QString numberBlockMessage = "1";
 
-    Sox* sox;
+    Audio* audio;
     QDate Date;
 
     QMediaPlayer* player;
@@ -130,6 +126,7 @@ private:
     QSystemTrayIcon* trayIcon;
 
     bool isFinalClosing = false;
+    bool isConnectedAudio = false;
 
 };
 

@@ -5,7 +5,7 @@
 #include <QThread>
 
 class MainWindow;
-class Sox;
+class Audio;
 class WebCam;
 
 class Skype : public QObject
@@ -22,7 +22,7 @@ public slots:
 private:
     QTcpSocket* Socket;
     MainWindow* Main;
-    Sox* sox;
+    Audio* audio;
     QThread thread;
     QThread threadWebCam;
     WebCam* webCam;

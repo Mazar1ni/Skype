@@ -61,6 +61,8 @@ FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f, 
     timeCall.setHMS(0, 0, 0);
 
     timer = new QTimer;
+
+    connect(timer, SIGNAL(timeout()), this, SLOT(incrementTimeSec()));
 }
 
 void FriendWidget::updateStatus(QString stat)
@@ -218,11 +220,11 @@ void FriendWidget::setCallStatus(bool value)
 {
     if(value == true)
     {
-        connect(timer, SIGNAL(timeout()), this, SLOT(incrementTimeSec()));
         timer->start(1000);
     }
     else
     {
+        timeCall.setHMS(0, 0, 0);
         timer->stop();
     }
     callStatus = value;

@@ -1,19 +1,19 @@
 #include "mainwindow.h"
 #include "friendwidget.h"
 #include "calling.h"
-#include "sox.h"
+#include "audio.h"
 #include "message.h"
 #include "webcam.h"
 #include "profilewidget.h"
 #include "filetransfer.h"
 #include "chatwidget.h"
+#include "settingswidget.h"
 #include <QApplication>
 #include <QPushButton>
 #include <QMessageBox>
 #include <QTabWidget>
 #include <sstream>
 #include <QFile>
-#include <QtMultimedia/QAudioFormat>
 #include <QHeaderView>
 #include <QMediaPlayer>
 #include <QScrollBar>
@@ -22,8 +22,8 @@
 #include <QBuffer>
 #include <QMenu>
 
-MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWidget *parent)
-    : QWidget(parent), Socket(Sock), sox(Sox), webCam(wb)
+MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWidget *parent)
+    : QWidget(parent), Socket(Sock), audio(a), webCam(wb)
 {
     video.clear();
     // оформление окна
@@ -128,15 +128,6 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
 
     connect(Socket, SIGNAL(readyRead()), SLOT(SlotReadyRead()));
 
-    Format.setSampleRate(4000);
-    Format.setChannelCount(1);
-    Format.setSampleSize(16);
-    Format.setCodec("audio/pcm");
-    Format.setByteOrder(QAudioFormat::LittleEndian);
-    Format.setSampleType(QAudioFormat::UnSignedInt);
-
-    AudioOutput = new QAudioOutput(Format, this);
-
     player = new QMediaPlayer();
     player->setMedia(QUrl("qrc:/Sound/newMessage.wav"));
 
@@ -155,10 +146,16 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Sox *Sox, WebCam *wb, QWid
     QTimer::singleShot(2000, [this](){
         SlotSendToServer("/recent/");
     });
+
+    QTimer::singleShot(2000, [this](){
+        connectSoundServer(id, identificationNumber);
+    });
 }
 
 void MainWindow::SlotSendToServer(QString str)
 {
+    qDebug() << "send:  " << str;
+
     QByteArray  arrBlock;
 
     QDataStream out(&arrBlock, QIODevice::WriteOnly);
@@ -283,6 +280,10 @@ void MainWindow::createSettingRoomWidget()
 
 void MainWindow::upCalling(QString name, QString pass)
 {
+    if(isConnectedAudio == false)
+    {
+        return;
+    }
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true)
@@ -313,7 +314,6 @@ void MainWindow::upCalling(QString name, QString pass)
     SlotSendToServer("/30/" + name + ":" + pass);
     isOpenedRoom = true;
     startRecord();
-    DeviceOutput = AudioOutput->start();
 
     friendInf->setCallStatus(true);
 
@@ -327,8 +327,9 @@ void MainWindow::upCalling(QString name, QString pass)
 
     createCallWidget();
 
-    SlotSendToServer("/beginnigCall/" + friendInf->getId());
+    QThread::msleep(30);
 
+    SlotSendToServer("/beginnigCall/" + friendInf->getId());
 }
 
 void MainWindow::endCall()
@@ -370,7 +371,7 @@ void MainWindow::endCall()
 
     isOpenedRoom = false;
     isCreatedRoom = false;
-    QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+    QMetaObject::invokeMethod(audio, "stopRecord", Qt::DirectConnection);
     QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
 
     QThread::msleep(30);
@@ -383,7 +384,7 @@ void MainWindow::clickedMicroButton()
     if(isMicro == true)
     {
         dynamic_cast<QPushButton*>(QObject::sender())->setIcon(QIcon(":/Icons/micro_off_icon.png"));
-        QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+        QMetaObject::invokeMethod(audio, "stopRecord", Qt::DirectConnection);
     }
     else
     {
@@ -436,8 +437,19 @@ void MainWindow::clickedProfileWidget()
     }
     profileIcon->setMargin(30);
 
+    QString qss = ("QPushButton{"
+                              "font-weight: 700;"
+                              "text-decoration: none;"
+                              "padding: .5em 2em;"
+                              "outline: none;"
+                              "border: 2px solid;"
+                              "border-radius: 1px;"
+                            "} "
+                            "QPushButton:!hover { background: rgb(255,255,255); }");
+
     QPushButton* changeIcon = new QPushButton;
     changeIcon->setText("Change Icon");
+    changeIcon->setStyleSheet(qss);
 
     connect(changeIcon, &QPushButton::clicked, [this](){
 
@@ -448,8 +460,15 @@ void MainWindow::clickedProfileWidget()
         });
     });
 
+    QPushButton* settingsB = new QPushButton;
+    settingsB->setText("Settings");
+    settingsB->setStyleSheet(qss);
+
+    connect(settingsB, SIGNAL(clicked(bool)), this, SLOT(clickedSettings()));
+
     profileLeftVBox->addWidget(profileIcon);
     profileLeftVBox->addWidget(changeIcon);
+    profileLeftVBox->addWidget(settingsB);
     profileLeftVBox->addStretch();
 
     QVBoxLayout* profileRightVBox = new QVBoxLayout;
@@ -492,6 +511,8 @@ void MainWindow::clickedProfileWidget()
     QLabel* profileOldPassLabel = new QLabel("enter old password:    ");
 
     QLineEdit* profileOldPass = new QLineEdit;
+    profileOldPass->setEchoMode(QLineEdit::Password);
+    profileOldPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
 
     profileOldPassHBox->addStretch();
     profileOldPassHBox->addWidget(profileOldPassLabel);
@@ -502,6 +523,8 @@ void MainWindow::clickedProfileWidget()
     QLabel* profileNewPassLabel = new QLabel("enter new password:    ");
 
     QLineEdit* profileNewPass = new QLineEdit;
+    profileNewPass->setEchoMode(QLineEdit::Password);
+    profileNewPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
 
     profileNewPassHBox->addStretch();
     profileNewPassHBox->addWidget(profileNewPassLabel);
@@ -512,6 +535,8 @@ void MainWindow::clickedProfileWidget()
     QLabel* profileNewPassAgainLabel = new QLabel("enter new password again:    ");
 
     QLineEdit* profileNewPassAgain = new QLineEdit;
+    profileNewPassAgain->setEchoMode(QLineEdit::Password);
+    profileNewPassAgain->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
 
     profileNewPassAgainHBox->addStretch();
     profileNewPassAgainHBox->addWidget(profileNewPassAgainLabel);
@@ -523,6 +548,7 @@ void MainWindow::clickedProfileWidget()
     QPushButton* saveChangesButton = new QPushButton;
     saveChangesButton->setFixedSize(84, 24);
     saveChangesButton->setIcon(QIcon(":/Icons/checkmark_circled_icon.png").pixmap(64, 64));
+    saveChangesButton->setStyleSheet(qss);
 
     connect(saveChangesButton, &QPushButton::clicked, [this, profileName, profileEmail,
             profilePhone, profileOldPass, profileNewPass, profileNewPassAgain]()
@@ -577,6 +603,7 @@ void MainWindow::clickedProfileWidget()
     QPushButton* canselChangesButton = new QPushButton;
     canselChangesButton->setFixedSize(84, 24);
     canselChangesButton->setIcon(QIcon(":/Icons/close_circled_icon.png").pixmap(64, 64));
+    canselChangesButton->setStyleSheet(qss);
 
     connect(canselChangesButton, &QPushButton::clicked, [this, profileName, profileEmail,
             profilePhone, profileOldPass, profileNewPass, profileNewPassAgain](){
@@ -589,9 +616,9 @@ void MainWindow::clickedProfileWidget()
         profileNewPassAgain->clear();
     });
 
+    buttonsHBox->addStretch();
     buttonsHBox->addWidget(saveChangesButton);
     buttonsHBox->addWidget(canselChangesButton);
-    buttonsHBox->addStretch();
 
     profileRightVBox->addSpacing(80);
     profileRightVBox->addLayout(profileNameHBox);
@@ -689,6 +716,13 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
     }
 }
 
+void MainWindow::clickedSettings()
+{
+    SettingsWidget* settingsW = new SettingsWidget;
+    settingsW->setAttribute(Qt::WA_ShowModal, true);
+    settingsW->show();
+}
+
 void MainWindow::noUpCalling(QString name, QString pass)
 {
     SlotSendToServer("/31/" + name + ":" + pass);
@@ -700,7 +734,6 @@ void MainWindow::CreateRoom()
 
     isCreatedRoom = true;
     startRecord();
-    DeviceOutput = AudioOutput->start();
 }
 
 void MainWindow::OpenRoom()
@@ -720,12 +753,9 @@ void MainWindow::SlotReadyRead()
     QString str;
     in >> str;
 
-    if(buffer.indexOf("/18/") != -1)
-    {
-        buffer.remove(0, 4);
-        DeviceOutput->write(buffer);
-    }
-    else if(buffer.indexOf("/camera/") != -1)
+    qDebug() << "read:  " << str;
+
+    if(buffer.indexOf("/camera/") != -1)
     {
         video = buffer;
     }
@@ -891,7 +921,7 @@ void MainWindow::SlotReadyRead()
                             messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
                             Date = QDate::fromString(date,"dd MM yyyy");
                             scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                                      + 13);
+                                                                      + 53);
                             first = false;
                         }
                         else if(first == false)
@@ -903,7 +933,7 @@ void MainWindow::SlotReadyRead()
                     messageWidgets.push_front(m);
                     messageVBox->insertWidget(0, m);
                     scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                              + m->sizeMessageL());
+                                                              + m->sizeMessageL() + 40);
                 }
                 if(isDownloadFile == true)
                 {
@@ -937,7 +967,7 @@ void MainWindow::SlotReadyRead()
                             messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
                             Date = QDate::fromString(date,"dd MM yyyy");
                             scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                                      + 13);
+                                                                      + 53);
                             first = false;
                         }
                         else if(first == false)
@@ -949,7 +979,7 @@ void MainWindow::SlotReadyRead()
                     messageWidgets.push_front(m);
                     messageVBox->insertWidget(0, m);
                     scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                              + m->sizeMessageL());
+                                                              + m->sizeMessageL() + 40);
                 }
                 if(status == "1")
                 {
@@ -977,7 +1007,7 @@ void MainWindow::SlotReadyRead()
                 Date = QDate::fromString(date,"dd MM yyyy");
                 messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
                 scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                          + 13);
+                                                          + 53);
             }
         }
     }
@@ -1176,6 +1206,10 @@ void MainWindow::SlotReadyRead()
     {
         outOfTheRoom();
     }
+    else if(str.indexOf("/endingCall/") != -1)
+    {
+        outOfTheRoom();
+    }
     else if(str.indexOf("/updateFriendInfo/") != -1)
     {
         str.remove("/updateFriendInfo/");
@@ -1244,11 +1278,13 @@ void MainWindow::SlotReadyRead()
 void MainWindow::sendSound(QByteArray buff)
 {
     Socket->write(buff);
+    Socket->flush();
 }
 
 void MainWindow::sendCamera(QByteArray buff)
 {
     Socket->write(buff);
+    Socket->flush();
 }
 
 void MainWindow::imgWin(QByteArray buff)
@@ -1365,8 +1401,13 @@ void MainWindow::outOfTheRoom()
     callPlayer->stop();
     friendInf->setIsTryingCall("false");
 
-    QMetaObject::invokeMethod(sox, "stopRecord", Qt::DirectConnection);
+    QMetaObject::invokeMethod(audio, "stopRecord", Qt::DirectConnection);
     QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
+}
+
+void MainWindow::connectedAudio()
+{
+    isConnectedAudio = true;
 }
 
 void MainWindow::cleanLayout(QLayout* oL)
@@ -1579,6 +1620,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 
     messageVBox = new QVBoxLayout();
     messageVBox->addStretch();
+    messageVBox->setSpacing(20);
     messageWidget->setLayout(messageVBox);
 
     QHBoxLayout* lineMessageBox = new QHBoxLayout;
@@ -1616,6 +1658,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
         {
             addFriendB->setText("Accept friend invitation");
             connect(addFriendB, &QPushButton::clicked, [this, friendW](){
+                friendWidgets.append(friendW);
                 friendW->setIsEnableInviteToFriend(false);
                 friendW->setIsAcceptFriendInvitation("false");
                 friendW->setIsFriend(true);
@@ -1667,6 +1710,10 @@ void MainWindow::clickedCallButton()
         msgBox.exec();
         return;
     }
+    if(isConnectedAudio == false)
+    {
+        return;
+    }
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true || isStartedCall == true)
@@ -1682,7 +1729,6 @@ void MainWindow::clickedCallButton()
 
         isCreatedRoom = true;
 
-        DeviceOutput = AudioOutput->start();
         startRecord();
         isStartedCall = true;
         callPlayer->play();
@@ -1715,7 +1761,7 @@ void MainWindow::clickedSendMessageButton()
 
 void MainWindow::requestNewMessage(int value)
 {
-    if(value == 0 && messageVBox->count() >= 20)
+    if(value == 0 && messageVBox->count() >= 10)
     {
         isScrolling = false;
         numberBlockMessage = QString::number(numberBlockMessage.toInt() + 1);

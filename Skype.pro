@@ -55,7 +55,6 @@ SOURCES += \
     mainwindow.cpp \
     friendwidget.cpp \
     calling.cpp \
-    sox.cpp \
     message.cpp \
     webcam.cpp \
     profilewidget.cpp \
@@ -64,14 +63,15 @@ SOURCES += \
     SignupSignin/authentication.cpp \
     SignupSignin/registration.cpp \
     SignupSignin/settingsconnection.cpp \
-    updater.cpp
+    updater.cpp \
+    settingswidget.cpp \
+    audio.cpp
 
 HEADERS += \
     skype.h \
     mainwindow.h \
     friendwidget.h \
     calling.h \
-    sox.h \
     message.h \
     webcam.h \
     profilewidget.h \
@@ -80,7 +80,9 @@ HEADERS += \
     SignupSignin/authentication.h \
     SignupSignin/registration.h \
     SignupSignin/settingsconnection.h \
-    updater.h
+    updater.h \
+    settingswidget.h \
+    audio.h
 
 RESOURCES += \
     Resources/resources.qrc

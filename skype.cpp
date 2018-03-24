@@ -2,7 +2,7 @@
 #include "SignupSignin/authentication.h"
 #include "mainwindow.h"
 #include <QDebug>
-#include "sox.h"
+#include "audio.h"
 #include "webcam.h"
 #include "updater.h"
 
@@ -15,22 +15,26 @@ Skype::Skype()
 
 void Skype::Connected(QString str)
 {
-    sox = new Sox;
-    sox->moveToThread(&thread);
+    audio = new Audio;
+    audio->moveToThread(&thread);
     thread.start();
 
     webCam = new WebCam;
     webCam->moveToThread(&threadWebCam);
     threadWebCam.start();
 
-    Main = new MainWindow(Socket, str, sox, webCam);
+    Main = new MainWindow(Socket, str, audio, webCam);
     Main->show();
-    connect(Main, SIGNAL(removeNoise()),
-            sox, SLOT(removeNoise()));
-    connect(sox, SIGNAL(sendSound(QByteArray)),
+    connect(audio, SIGNAL(sendSound(QByteArray)),
             Main, SLOT(sendSound(QByteArray)));
     connect(Main, SIGNAL(startRecord()),
-            sox, SLOT(startRecord()));
+            audio, SLOT(startRecord()));
+    connect(Main, SIGNAL(connectSoundServer(QString, QString)),
+            audio, SLOT(connectServer(QString, QString)));
+    connect(audio, SIGNAL(outOfTheRoom()),
+            Main, SLOT(outOfTheRoom()));
+    connect(audio, SIGNAL(connectedAudio()),
+            Main, SLOT(connectedAudio()));
 
     connect(Main, SIGNAL(startRecordVideo()),
             webCam, SLOT(startRecord()));

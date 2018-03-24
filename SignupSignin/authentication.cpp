@@ -20,7 +20,6 @@ Authentication::Authentication(QTcpSocket *soc, Skype *parent) : Parent(parent),
     textLogin = new QLineEdit(this);
     textLogin->resize(200, 20);
     textLogin->move(20, 20);
-    textLogin->setText("Mazarini");
     QLabel* labelLogin = new QLabel("Login:", this);
     labelLogin->move(20, 5);
 
@@ -28,8 +27,9 @@ Authentication::Authentication(QTcpSocket *soc, Skype *parent) : Parent(parent),
     textPass = new QLineEdit(this);
     textPass->resize(200, 20);
     textPass->move(20, 60);
+    textPass->setEchoMode(QLineEdit::Password);
+    textPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
     QLabel* labelPass = new QLabel("Password:", this);
-    textPass->setText("Sanhez123");
     labelPass->move(20, 45);
 
     // инииализация и оформление кнопки Connect
