@@ -15,30 +15,31 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
 {
     this->resize(600, 400);
     socket = new QTcpSocket;
+    // создание полей для регистрации
     QHBoxLayout* registrationHBox = new QHBoxLayout;
 
     QVBoxLayout* registrationLeftVBox = new QVBoxLayout;
     QVBoxLayout* registrationRightVBox = new QVBoxLayout;
 
-    QLabel* informationNameLabel = new QLabel("name must be between 6 and 255 characters");
+    QLabel* informationNameLabel = new QLabel(tr("name must be between 6 and 255 characters"));
     informationNameLabel->setStyleSheet("color: red;");
     informationNameLabel->setObjectName("false");
-    QLabel* informationEmailLabel = new QLabel("invalid email");
+    QLabel* informationEmailLabel = new QLabel(tr("invalid email"));
     informationEmailLabel->setStyleSheet("color: red;");
     informationEmailLabel->setObjectName("false");
-    QLabel* informationPhoneLabel = new QLabel("Incorrect telephone");
+    QLabel* informationPhoneLabel = new QLabel(tr("Incorrect telephone"));
     informationPhoneLabel->setStyleSheet("color: red;");
     informationPhoneLabel->setObjectName("false");
-    QLabel* informationLoginLabel = new QLabel("login must be between 6 and 30 characters");
+    QLabel* informationLoginLabel = new QLabel(tr("login must be between 6 and 30 characters"));
     informationLoginLabel->setStyleSheet("color: red;");
     informationLoginLabel->setObjectName("false");
-    informationDateLabel = new QLabel("invalid date");
+    informationDateLabel = new QLabel(tr("invalid date"));
     informationDateLabel->setStyleSheet("color: red;");
     informationDateLabel->setObjectName("false");
-    QLabel* informationPassLabel = new QLabel("password must be between 6 and 30 characters");
+    QLabel* informationPassLabel = new QLabel(tr("password must be between 6 and 30 characters"));
     informationPassLabel->setStyleSheet("color: red;");
     informationPassLabel->setObjectName("false");
-    QLabel* informationRepeatPassLabel = new QLabel("passwords must match");
+    QLabel* informationRepeatPassLabel = new QLabel(tr("passwords must match"));
     informationRepeatPassLabel->setStyleSheet("color: red;");
     informationRepeatPassLabel->setObjectName("false");
 
@@ -68,94 +69,98 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
     connect(registrationName, &QLineEdit::textChanged, [informationNameLabel, registrationName](){
         if(registrationName->text().size() > 6 && registrationName->text().size() < 30)
         {
-            informationNameLabel->setText("name entered correctly");
+            informationNameLabel->setText(tr("name entered correctly"));
             informationNameLabel->setStyleSheet("color: green;");
             informationNameLabel->setObjectName("true");
         }
         else
         {
-            informationNameLabel->setText("name must be between 6 and 30 characters");
+            informationNameLabel->setText(tr("name must be between 6 and 30 characters"));
             informationNameLabel->setStyleSheet("color: red;");
             informationNameLabel->setObjectName("false");
         }
     });
 
     QVBoxLayout* registrationEmailVBox = new QVBoxLayout;
-    QLabel* registrationEmailLabel = new QLabel("Email Address");
+    QLabel* registrationEmailLabel = new QLabel(tr("Email Address"));
     QLineEdit* registrationEmail = new QLineEdit;
-    registrationEmail->setPlaceholderText("your valid email address");
+    registrationEmail->setPlaceholderText(tr("your valid email address"));
     registrationEmailVBox->addStretch();
     registrationEmailVBox->addWidget(registrationEmailLabel);
     registrationEmailVBox->addWidget(registrationEmail);
+    // проверка совпадает ли значение с образцом при помощи регулярных выражений
     connect(registrationEmail, &QLineEdit::textChanged, [informationEmailLabel, registrationEmail](){
         QRegExp rx("^.+@.+[.]+.+$");
         if(rx.exactMatch(registrationEmail->text()))
         {
-            informationEmailLabel->setText("email entered correctly");
+            informationEmailLabel->setText(tr("email entered correctly"));
             informationEmailLabel->setStyleSheet("color: green;");
             informationEmailLabel->setObjectName("true");
         }
         else
         {
-            informationEmailLabel->setText("invalid email");
+            informationEmailLabel->setText(tr("invalid email"));
             informationEmailLabel->setStyleSheet("color: red;");
             informationEmailLabel->setObjectName("false");
         }
     });
 
     QVBoxLayout* registrationLoginVBox = new QVBoxLayout;
-    QLabel* registrationLoginLabel = new QLabel("Username");
+    QLabel* registrationLoginLabel = new QLabel(tr("Username"));
     QLineEdit* registrationLogin = new QLineEdit;
-    registrationLogin->setPlaceholderText("your unique username");
+    registrationLogin->setPlaceholderText(tr("your unique username"));
     registrationLoginVBox->addStretch();
     registrationLoginVBox->addWidget(registrationLoginLabel);
     registrationLoginVBox->addWidget(registrationLogin);
+    // проверка совпадает ли значение с образцом при помощи регулярных выражений
     connect(registrationLogin, &QLineEdit::textChanged, [informationLoginLabel, registrationLogin](){
         if(registrationLogin->text().size() > 6 && registrationLogin->text().size() < 30)
         {
-            informationLoginLabel->setText("username entered correctly");
+            informationLoginLabel->setText(tr("username entered correctly"));
             informationLoginLabel->setStyleSheet("color: green;");
             informationLoginLabel->setObjectName("true");
         }
         else
         {
-            informationLoginLabel->setText("login must be between 6 and 30 characters");
+            informationLoginLabel->setText(tr("login must be between 6 and 30 characters"));
             informationLoginLabel->setStyleSheet("color: red;");
             informationLoginLabel->setObjectName("false");
         }
     });
 
     QVBoxLayout* registrationPhoneVBox = new QVBoxLayout;
-    QLabel* registrationPhoneLabel = new QLabel("Phone Number");
+    QLabel* registrationPhoneLabel = new QLabel(tr("Phone Number"));
     QLineEdit* registrationPhone = new QLineEdit;
-    registrationPhone->setPlaceholderText("your phone number");
+    registrationPhone->setPlaceholderText(tr("your phone number"));
     registrationPhoneVBox->addStretch();
     registrationPhoneVBox->addWidget(registrationPhoneLabel);
     registrationPhoneVBox->addWidget(registrationPhone);
+    // проверка совпадает ли значение с образцом при помощи регулярных выражений
     connect(registrationPhone, &QLineEdit::textChanged, [informationPhoneLabel, registrationPhone](){
         QRegExp rx("^\\++(\\d.*){3,}$");
         if(rx.exactMatch(registrationPhone->text()))
         {
-            informationPhoneLabel->setText("phone entered correctly");
+            informationPhoneLabel->setText(tr("phone entered correctly"));
             informationPhoneLabel->setStyleSheet("color: green;");
             informationPhoneLabel->setObjectName("true");
         }
         else
         {
-            informationPhoneLabel->setText("Incorrect telephone");
+            informationPhoneLabel->setText(tr("Incorrect telephone"));
             informationPhoneLabel->setStyleSheet("color: red;");
             informationPhoneLabel->setObjectName("false");
         }
     });
 
     QVBoxLayout* registrationDateVBox = new QVBoxLayout;
-    QLabel* registrationDateLabel = new QLabel("Date of Birth");
+    QLabel* registrationDateLabel = new QLabel(tr("Date of Birth"));
     QHBoxLayout* registrationDateHBox = new QHBoxLayout;
     dayComboBox = new QComboBox;
     for(int i = 1; i <= 31; i++)
     {
         dayComboBox->addItem(QString::number(i));
     }
+    // проверка валидности даты
     connect(dayComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(checkValidDate()));
     monthComboBox = new QComboBox;
     for(int i = 1; i <= 12; i++)
@@ -163,12 +168,14 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
         QLocale l;
         monthComboBox->addItem(l.monthName(i));
     }
+    // проверка валидности даты
     connect(monthComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(checkValidDate()));
     yearComboBox = new QComboBox;
     for(int i = 1900; i <= QDate::currentDate().year(); i++)
     {
          yearComboBox->addItem(QString::number(i));
     }
+    // проверка валидности даты
     connect(yearComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(checkValidDate()));
     registrationDateHBox->addWidget(dayComboBox);
     registrationDateHBox->addWidget(monthComboBox);
@@ -178,9 +185,9 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
     registrationDateVBox->addLayout(registrationDateHBox);
 
     QVBoxLayout* registrationPassVBox = new QVBoxLayout;
-    QLabel* registrationPassLabel = new QLabel("Password");
+    QLabel* registrationPassLabel = new QLabel(tr("Password"));
     QLineEdit* registrationPass = new QLineEdit;
-    registrationPass->setPlaceholderText("select a strong password");
+    registrationPass->setPlaceholderText(tr("select a strong password"));
     registrationPass->setEchoMode(QLineEdit::Password);
     registrationPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
     registrationPassVBox->addStretch();
@@ -188,71 +195,85 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
     registrationPassVBox->addWidget(registrationPass);
 
     QVBoxLayout* registrationRepeatPassVBox = new QVBoxLayout;
-    QLabel* registrationRepeatPassLabel = new QLabel("Re-peat Password");
+    QLabel* registrationRepeatPassLabel = new QLabel(tr("Re-peat Password"));
     QLineEdit* registrationRepeatPass = new QLineEdit;
-    registrationRepeatPass->setPlaceholderText("re-peat password");
+    registrationRepeatPass->setPlaceholderText(tr("re-peat password"));
     registrationRepeatPass->setEchoMode(QLineEdit::Password);
     registrationRepeatPass->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
     registrationRepeatPassVBox->addStretch();
     registrationRepeatPassVBox->addWidget(registrationRepeatPassLabel);
     registrationRepeatPassVBox->addWidget(registrationRepeatPass);
+    // проверка совпадает ли значение с образцом при помощи регулярных выражений
     connect(registrationRepeatPass, &QLineEdit::textChanged,
             [informationRepeatPassLabel, registrationRepeatPass, registrationPass](){
         if(registrationRepeatPass->text() == registrationPass->text())
         {
-            informationRepeatPassLabel->setText("password entered correctly");
+            informationRepeatPassLabel->setText(tr("password entered correctly"));
             informationRepeatPassLabel->setStyleSheet("color: green;");
             informationRepeatPassLabel->setObjectName("true");
         }
         else
         {
-            informationRepeatPassLabel->setText("passwords must match");
+            informationRepeatPassLabel->setText(tr("passwords must match"));
             informationRepeatPassLabel->setStyleSheet("color: red;");
             informationRepeatPassLabel->setObjectName("false");
         }
     });
 
+    // проверка совпадает ли значение с образцом при помощи регулярных выражений
     connect(registrationPass, &QLineEdit::textChanged,
             [informationPassLabel, registrationPass, registrationRepeatPass, informationRepeatPassLabel](){
         QRegExp rx("^([a-zA-Z0-9@*#]{6,30})$");
         if(rx.exactMatch(registrationPass->text()))
         {
-            informationPassLabel->setText("password entered correctly");
+            informationPassLabel->setText(tr("password entered correctly"));
             informationPassLabel->setStyleSheet("color: green;");
             if(registrationPass->text().indexOf("123") != -1 || registrationPass->text().indexOf("qwe") != -1)
             {
-                informationPassLabel->setText("password entered correctly !!!WARNING!!! "
-                                               "that your password is too weak");
+                informationPassLabel->setText(tr("password entered correctly !!!WARNING!!! "
+                                               "that your password is too weak"));
             }
             informationPassLabel->setObjectName("true");
         }
         else
         {
-            informationPassLabel->setText("password must be between 6 and 30 characters");
+            informationPassLabel->setText(tr("password must be between 6 and 30 characters"));
             informationPassLabel->setStyleSheet("color: red;");
             informationPassLabel->setObjectName("false");
         }
 
         if(registrationRepeatPass->text() == registrationPass->text())
         {
-            informationRepeatPassLabel->setText("password entered correctly");
+            informationRepeatPassLabel->setText(tr("password entered correctly"));
             informationRepeatPassLabel->setStyleSheet("color: green;");
             informationRepeatPassLabel->setObjectName("true");
         }
         else
         {
-            informationRepeatPassLabel->setText("passwords must match");
+            informationRepeatPassLabel->setText(tr("passwords must match"));
             informationRepeatPassLabel->setStyleSheet("color: red;");
             informationRepeatPassLabel->setObjectName("false");
         }
     });
 
+    QString qss = ("QPushButton{"
+                              "font-weight: 700;"
+                              "text-decoration: none;"
+                              "padding: .5em 2em;"
+                              "outline: none;"
+                              "border: 2px solid;"
+                              "border-radius: 1px;"
+                            "} "
+                            "QPushButton:!hover { background: rgb(255,255,255); }");
     QPushButton* btnCreate = new QPushButton;
-    btnCreate->setText("Create an account");
+    btnCreate->setStyleSheet(qss);
+    btnCreate->setText(tr("Create an account"));
     btnCreate->setMinimumSize(100, 30);
+    // формирование данных для отправки серверу
     connect(btnCreate, &QPushButton::clicked,
             [this, registrationRightVBox, registrationName, registrationEmail, registrationLogin,
             registrationPhone, registrationPass](){
+        // проверка есть ли поля не удовлетворяющие требованиям
         for(int i = 0; i < registrationRightVBox->count(); i++)
         {
             if(registrationRightVBox->itemAt(i)->widget())
@@ -277,6 +298,7 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
         QTimer::singleShot(1000, &loop, SLOT(quit()));
         loop.exec();
 
+        // отправка данных пользователя на сервер
         QString mess = "/registration/" + registrationName->text() + "!" + registrationEmail->text() + "!"
                        + registrationLogin->text() + "!" + registrationPhone->text() + "!"
                        + registrationPass->text() + "!" + date.toString("dd.MM.yyyy");
@@ -313,24 +335,26 @@ Registration::Registration(QWidget *parent) : QWidget(parent)
     this->setLayout(registrationHBox);
 }
 
+// првоерка валидности даты
 void Registration::checkValidDate()
 {
     QDate date(yearComboBox->currentText().toInt(), monthComboBox->currentIndex() + 1,
                dayComboBox->currentText().toInt());
     if(date.isValid())
     {
-        informationDateLabel->setText("date entered correctly");
+        informationDateLabel->setText(tr("date entered correctly"));
         informationDateLabel->setStyleSheet("color: green;");
         informationDateLabel->setObjectName("true");
     }
     else
     {
-        informationDateLabel->setText("invalid date");
+        informationDateLabel->setText(tr("invalid date"));
         informationDateLabel->setStyleSheet("color: red;");
         informationDateLabel->setObjectName("false");
     }
 }
 
+// слот для приема сообщение от сервера
 void Registration::slotReadyRead()
 {
     QDataStream in(socket);
@@ -338,13 +362,15 @@ void Registration::slotReadyRead()
     QString str;
     in >> str;
 
+    // такой логин уже занят
     if(str.indexOf("/loginExists/") != -1)
     {
-        QMessageBox::critical(NULL,QObject::tr("Error"), "Such login already exists!");
+        QMessageBox::critical(NULL,tr("Error"), tr("Such login already exists!"));
     }
+    // регистрация прошла успешно
     else if(str.indexOf("/successfully/") != -1)
     {
-        QMessageBox::information(NULL,QObject::tr("Successfully"), "You have successfully registered!");
+        QMessageBox::information(NULL,tr("Successfully"), tr("You have successfully registered!"));
         deleteLater();
     }
 }

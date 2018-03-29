@@ -30,6 +30,7 @@ calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(p
 
     connect(noCallButton, SIGNAL(clicked(bool)), this, SLOT(noUpCalling()));
 
+    // проигрывание мелодии звонка
     player = new QMediaPlayer(this);
     playlist = new QMediaPlaylist(player);
 
@@ -46,6 +47,7 @@ calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(p
     callTimer->start(30000);
 }
 
+// приняте звонка
 void calling::upCalling()
 {
     parent->upCalling(nameRoom, pass);
@@ -58,6 +60,7 @@ void calling::upCalling()
     deleteLater();
 }
 
+// отказ от принятия звонка
 void calling::noUpCalling()
 {
     parent->noUpCalling(nameRoom, pass);

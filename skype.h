@@ -3,6 +3,7 @@
 
 #include <QTcpSocket>
 #include <QThread>
+#include <QTranslator>
 
 class MainWindow;
 class Audio;
@@ -26,6 +27,7 @@ private:
     QThread thread;
     QThread threadWebCam;
     WebCam* webCam;
+    QTranslator translator;
 
 };
 

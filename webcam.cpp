@@ -3,22 +3,15 @@
 #include <QCameraInfo>
 #include <QBuffer>
 #include <QDataStream>
+#include <QSettings>
 
 WebCam::WebCam(QObject *parent) : QAbstractVideoSurface(parent)
 {
-    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
-    if(cameras.count() > 0)
+    // проверка есть ли вообще веб-камеры у пользователя
+    if(QCameraInfo::availableCameras().count() > 0)
     {
         isCamera = true;
-        foreach (const QCameraInfo &cameraInfo, cameras) {
-            qDebug() << cameraInfo.description();
-            camera = new QCamera(cameraInfo);
-        }
-        camera->setCaptureMode(QCamera::CaptureVideo);
-
-        camera->setViewfinder(this);
-        connect(this, SIGNAL(frameAvailable(QImage)), this, SLOT(handleFrame(QImage)));
-        camera->start();
+        settingPreferences();
     }
     else
     {
@@ -26,10 +19,8 @@ WebCam::WebCam(QObject *parent) : QAbstractVideoSurface(parent)
     }
 }
 
-QList<QVideoFrame::PixelFormat> WebCam::supportedPixelFormats(
-        QAbstractVideoBuffer::HandleType handleType) const
+QList<QVideoFrame::PixelFormat> WebCam::supportedPixelFormats(QAbstractVideoBuffer::HandleType) const
 {
-    Q_UNUSED(handleType);
     return QList<QVideoFrame::PixelFormat>()
         << QVideoFrame::Format_ARGB32
         << QVideoFrame::Format_ARGB32_Premultiplied
@@ -84,11 +75,13 @@ bool WebCam::present(const QVideoFrame &frame)
      return false;
 }
 
+// начало звонка
 void WebCam::startRecord()
 {
     isTransmit = true;
 }
 
+// конец звонка
 void WebCam::stopRecord()
 {
     isTransmit = false;
@@ -106,7 +99,44 @@ void WebCam::handleFrame(QImage img)
     sendCamera("/camera/" + ba + "/end/");
 }
 
+// обновление настроек
+void WebCam::updateSettings()
+{
+    bool temp = isTransmit;
+    isTransmit = false;
+
+    camera->deleteLater();
+    settingPreferences();
+
+    isTransmit = temp;
+}
+
 bool WebCam::getIsCamera() const
 {
     return isCamera;
+}
+
+// установка настроек
+void WebCam::settingPreferences()
+{
+    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
+    QSettings settings("settings.conf", QSettings::IniFormat);
+    settings.beginGroup("VideoSettings");
+    foreach (const QCameraInfo &cameraInfo, cameras)
+    {
+        if(settings.value("Camera").toString() == cameraInfo.description())
+        {
+            camera = new QCamera(cameraInfo);
+        }
+    }
+    if(camera == nullptr)
+    {
+        camera = new QCamera(QCameraInfo::defaultCamera());
+    }
+    settings.endGroup();
+    camera->setCaptureMode(QCamera::CaptureVideo);
+
+    camera->setViewfinder(this);
+    connect(this, SIGNAL(frameAvailable(QImage)), this, SLOT(handleFrame(QImage)));
+    camera->start();
 }

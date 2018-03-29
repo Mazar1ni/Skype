@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QDir>
 
+// поиск и удаление старых (обновлённых) файлов
 void deleteOldFiles(QString path)
 {
     QDir currentFolder(path);

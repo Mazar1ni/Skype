@@ -9,6 +9,9 @@ ChatWidget::ChatWidget(QString i, QString identNumber, QString idFr, QWidget *pa
     setAcceptDrops(true);
 }
 
+// событие отпускания стороннего файла на виджет чата
+// при этом этот файл будет загружен на сервер
+// и отправлено сообщение другу
 void ChatWidget::dropEvent(QDropEvent *ev)
 {
     QList<QUrl> urls = ev->mimeData()->urls();

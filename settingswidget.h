@@ -61,6 +61,7 @@ public:
     explicit SettingsWidget(QWidget *parent = nullptr);
 
 signals:
+    void updateSettings();
 
 public slots:
 };

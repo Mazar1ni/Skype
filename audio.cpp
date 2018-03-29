@@ -1,19 +1,10 @@
 #include "audio.h"
 #include "mainwindow.h"
-#include <QTimer>
+#include <QSettings>
 
 Audio::Audio(QObject *parent) : QObject(parent), buffer(14096, 0)
 {
-    // настройка аудио
-    Format.setSampleRate(8000);
-    Format.setChannelCount(1);
-    Format.setSampleSize(16);
-    Format.setCodec("audio/pcm");
-    Format.setByteOrder(QAudioFormat::LittleEndian);
-    Format.setSampleType(QAudioFormat::UnSignedInt);
-
-    AudioInput = new QAudioInput(Format, this);
-    AudioOutput = new QAudioOutput(Format, this);
+    settingPreferences();
 }
 
 int Audio::ApplyVolumeToSample(short iSample)
@@ -21,6 +12,7 @@ int Audio::ApplyVolumeToSample(short iSample)
     return std::max(std::min(((iSample * iVolume) / 50) ,35535), -35535);
 }
 
+// слот для отправки сообщений серверу
 void Audio::SlotSendToServer(QString str)
 {
     QByteArray  arrBlock;
@@ -32,6 +24,63 @@ void Audio::SlotSendToServer(QString str)
     socket->flush();
 }
 
+// установка настроек для микроона и динамиков (поумолчанию или из настроек пользвателя)
+void Audio::settingPreferences()
+{
+    // настройка аудио
+    Format.setSampleRate(4000);
+    Format.setChannelCount(1);
+    Format.setSampleSize(16);
+    Format.setCodec("audio/pcm");
+    Format.setByteOrder(QAudioFormat::LittleEndian);
+    Format.setSampleType(QAudioFormat::UnSignedInt);
+
+    QSettings settings("settings.conf", QSettings::IniFormat);
+
+    settings.beginGroup("AudioSettings");
+
+    QAudioDeviceInfo deviceInput;
+    foreach (const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
+    {
+        if(deviceInfo.deviceName() == settings.value("Microphone").toString())
+        {
+            deviceInput = deviceInfo;
+            break;
+        }
+    }
+
+    if(deviceInput.isNull())
+    {
+        deviceInput = QAudioDeviceInfo::defaultInputDevice();
+    }
+
+    QAudioDeviceInfo deviceOutput;
+    foreach (const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
+    {
+        if(deviceInfo.deviceName() == settings.value("Speakers").toString())
+        {
+            deviceOutput = deviceInfo;
+            break;
+        }
+    }
+
+    if(deviceOutput.isNull())
+    {
+        deviceOutput = QAudioDeviceInfo::defaultInputDevice();
+    }
+
+    AudioInput = new QAudioInput(deviceInput, Format);
+    AudioOutput = new QAudioOutput(deviceOutput, Format);
+
+    DeviceOutput = AudioOutput->start();
+
+    iVolume = settings.value("VolumeMicrophone", 99).toInt();
+    AudioOutput->setVolume(settings.value("VolumeSpeakers", 99).toInt());
+
+    settings.endGroup();
+}
+
+// удаление шумов из аудио
 void Audio::removeNoise()
 {
     if(isTransmit == false)
@@ -73,19 +122,21 @@ void Audio::removeNoise()
     socket->flush();
 }
 
+// начало записи
 void Audio::startRecord()
 {
     DeviceInput = AudioInput->start();
-    DeviceOutput = AudioOutput->start();
     isTransmit = true;
     connect(DeviceInput, SIGNAL(readyRead()), this, SLOT(removeNoise()));
 }
 
+// конец записи
 void Audio::stopRecord()
 {
     isTransmit = false;
 }
 
+// соединение с аудио сервером
 void Audio::connectServer(QString id, QString identificator)
 {
     idUser = id;
@@ -101,25 +152,48 @@ void Audio::connectServer(QString id, QString identificator)
     });
 }
 
+// обновление настроек
+void Audio::updateSettings()
+{
+    bool temp = isTransmit;
+    isTransmit = false;
+
+    AudioInput->deleteLater();
+    AudioOutput->deleteLater();
+
+    DeviceInput = nullptr;
+    DeviceOutput = nullptr;
+
+    settingPreferences();
+
+    isTransmit = temp;
+}
+
+// слот для приема сообщение от сервера
 void Audio::slotReadyRead()
 {
     QByteArray buffer;
-    buffer = socket->readAll();
+    buffer.resize(socket->size());
+
+    socket->read(buffer.data(), buffer.size());
 
     QDataStream in(buffer);
 
     QString str;
     in >> str;
 
+    // получение аудио
     if(buffer.indexOf("/18/") != -1)
     {
         buffer.remove(0, 4);
         DeviceOutput->write(buffer);
     }
+    // выход из комнаты и завершение звонка
     else if(str.indexOf("/outoftheroom/") != -1)
     {
         emit(outOfTheRoom());
     }
+    // установлено соединение с аудио сервером
     else if(str.indexOf("/connected/") != -1)
     {
         emit(connectedAudio());

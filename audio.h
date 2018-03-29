@@ -7,6 +7,7 @@
 #include <QTcpSocket>
 #include <QThread>
 #include <QAudioOutput>
+#include <QTimer>
 
 class MainWindow;
 
@@ -17,6 +18,7 @@ public:
     Audio(QObject* parent = nullptr);
     int ApplyVolumeToSample(short iSample);
     void SlotSendToServer(QString str);
+    void settingPreferences();
 
 signals:
     void sendSound(QByteArray);
@@ -28,6 +30,7 @@ public slots:
     void startRecord();
     void stopRecord();
     void connectServer(QString id, QString identificator);
+    void updateSettings();
 
 private slots:
     void slotReadyRead();
@@ -41,7 +44,7 @@ private:
     QAudioOutput* AudioOutput;
     QIODevice* DeviceOutput = nullptr;
     QByteArray buffer;
-    int iVolume = 30;
+    int iVolume = 0;
 
     bool isTransmit = false;
 

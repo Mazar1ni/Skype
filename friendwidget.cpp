@@ -15,9 +15,11 @@ FriendWidget::FriendWidget(QString friendsId, QString l, QString em, QString f, 
 {
     setFixedSize(200, 60);
 
+    // проверка стандартная ли иконка у друга
     if(iconName != "standart_icon.png")
     {
         QDir().mkdir("IconFriends");
+        // если этой иконки нет, то она скачивается с сервера
         if(!QFile::exists("IconFriends/" + id + "!" + iconName))
         {
             FileTransfer* fileTransfer = new FileTransfer(idPar, identificationNumber, "downloadFriendIcon", id + "!" + iconName);
@@ -143,6 +145,7 @@ void FriendWidget::setIsFriend(bool value)
     isFriend = value;
 }
 
+// меняем задний фон если этот друг отправил приглашение пользователю
 void FriendWidget::setIsAcceptFriendInvitation(const QString &value)
 {
     isAcceptFriendInvitation = value;
@@ -191,6 +194,7 @@ QTime FriendWidget::getTimeCall() const
     return timeCall;
 }
 
+// загрузка новой иконки
 void FriendWidget::downloadNewIcon(QString nameIcon)
 {
     iconName = nameIcon;
@@ -220,10 +224,12 @@ void FriendWidget::setCallStatus(bool value)
 {
     if(value == true)
     {
+        // считаем сколько времени прошло от начала звонка
         timer->start(1000);
     }
     else
     {
+        // останавливаем таймер
         timeCall.setHMS(0, 0, 0);
         timer->stop();
     }

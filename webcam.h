@@ -12,9 +12,10 @@ class WebCam : public QAbstractVideoSurface
 public:
     explicit WebCam(QObject *parent = nullptr);
 
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
+    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType) const;
     bool present(const QVideoFrame &frame);
     bool getIsCamera() const;
+    void settingPreferences();
 
 signals:
     void frameAvailable(QImage frame);
@@ -24,9 +25,10 @@ public slots:
     void startRecord();
     void stopRecord();
     void handleFrame(QImage img);
+    void updateSettings();
 
 private:
-    QCamera* camera;
+    QCamera* camera = nullptr;
     bool isTransmit = false;
     bool isCamera;
     MainWindow* par;

@@ -7,7 +7,6 @@
 #include <QPushButton>
 #include <QKeyEvent>
 
-class SettingsConnection;
 class Skype;
 
 class Authentication : public QWidget
@@ -22,11 +21,8 @@ signals:
     void ClientConnected(QString str);
 
 private slots:
-    void OpenSettings();
     void Connect();
-    void slotConnected();
     void slotReadyRead();
-    void slotError(QAbstractSocket::SocketError err);
 
 protected:
   virtual void  keyPressEvent(QKeyEvent *event);
@@ -34,12 +30,10 @@ protected:
 private:
     Skype* Parent;
     QTcpSocket* Socket;
-    QTcpSocket* AudioSocket;
     QLineEdit* textLogin;
     QLineEdit* textPass;
     QPushButton* btnConnect;
     QPushButton* btnSettings;
-    SettingsConnection* Settings;
     bool isConnect = false;
 
 };

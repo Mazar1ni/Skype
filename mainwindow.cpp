@@ -31,12 +31,16 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
     setMinimumSize(800, 450);
     this->setWindowIcon(QIcon(":/Icons/skype_icon.ico"));
 
+    Date.setDate(1900, 1, 1);
+
+    // создание иконки в трее
     trayIcon = new QSystemTrayIcon(this);
     trayIcon->setIcon(QIcon(":/Icons/skype_icon.ico"));
     trayIcon->setToolTip("Skype");
 
+    // меню для иконки в трее
     QMenu * menu = new QMenu(this);
-    QAction * quitAction = new QAction("Quit", this);
+    QAction * quitAction = new QAction(tr("Quit"), this);
 
     connect(quitAction, &QAction::triggered, [this](){
         for(int i = 0; i < friendWidgets.count(); i++)
@@ -56,9 +60,11 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
     trayIcon->setContextMenu(menu);
     trayIcon->show();
 
+    // по нажатию на иконку в трее показывать/скрывать главное окно
     connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
                 this, SLOT(iconActivated(QSystemTrayIcon::ActivationReason)));
 
+    // информация о пользователе полученная от сервера
     QStringList list = str.split("!");
 
     id = list[0];
@@ -69,17 +75,22 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
     identificationNumber = list[5];
     iconName = list[6];
 
+    // создание виджета профиля
     profileWidget = new ProfileWidget(name, iconName, id, identificationNumber);
     profileWidget->setMaximumSize(200, 90);
 
+    // по нажатию на виджет профиля открывать настройки пользователя
     connect(profileWidget, SIGNAL(clicked()), this, SLOT(clickedProfileWidget()));
 
+    // поиск по друзьям и потенциальным друзьям
     QLineEdit* search = new QLineEdit;
-    search->setPlaceholderText("search...");
+    search->setPlaceholderText(tr("search..."));
     search->resize(150, 20);
     search->setMaximumWidth(200);
+    // понажатию enter в строке поиска, отправлять на сервер запрос поиска
     connect(search, SIGNAL(textChanged(QString)), this, SLOT(search(QString)));
 
+    // создание столбца друзья
     QScrollArea* scrollareaFriends = new QScrollArea();
     scrollareaFriends->setWidgetResizable(true);
     scrollareaFriends->setFrameStyle(QFrame::NoFrame);
@@ -91,6 +102,7 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
     friendsVBox->setAlignment(Qt::AlignTop);
     friendsWidget->setLayout(friendsVBox);
 
+    // создание столбца последние
     QScrollArea* scrollareaRecent = new QScrollArea();
     scrollareaRecent->setWidgetResizable(true);
     scrollareaRecent->setFrameStyle(QFrame::NoFrame);
@@ -103,8 +115,8 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
     recentWidget->setLayout(recentVBox);
 
     QTabWidget* listFriendsAndRecent = new QTabWidget;
-    listFriendsAndRecent->addTab(scrollareaFriends, "Friends");
-    listFriendsAndRecent->addTab(scrollareaRecent, "Recent");
+    listFriendsAndRecent->addTab(scrollareaFriends, tr("Friends"));
+    listFriendsAndRecent->addTab(scrollareaRecent, tr("Recent"));
     listFriendsAndRecent->setStyleSheet(QString("QTabBar::tab {width: 100px; height: 35px;}"));
     listFriendsAndRecent->setFixedWidth(200);
 
@@ -128,9 +140,11 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
 
     connect(Socket, SIGNAL(readyRead()), SLOT(SlotReadyRead()));
 
+    // установка мелодии для уведомления
     player = new QMediaPlayer();
     player->setMedia(QUrl("qrc:/Sound/newMessage.wav"));
 
+    // установка мелодии для звонка
     callPlayer = new QMediaPlayer();
     callPlayer->setMedia(QUrl("qrc:/Sound/phoneRings.wav"));
 
@@ -147,14 +161,16 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
         SlotSendToServer("/recent/");
     });
 
+    // отправка сигнала подключения к аудио серверу
     QTimer::singleShot(2000, [this](){
         connectSoundServer(id, identificationNumber);
     });
 }
 
+// слот для отправки сообщений серверу
 void MainWindow::SlotSendToServer(QString str)
 {
-    qDebug() << "send:  " << str;
+    //qDebug() << "send:  " << str;
 
     QByteArray  arrBlock;
 
@@ -165,6 +181,7 @@ void MainWindow::SlotSendToServer(QString str)
     Socket->flush();
 }
 
+// добавление друзей/потенциальных друзей/последние/запросы в друзья на layout
 void MainWindow::gettingFriends(QString str, QString mode)
 {
     QStringList list = str.split("!");
@@ -180,13 +197,14 @@ void MainWindow::gettingFriends(QString str, QString mode)
     list[7] - Icon Name
     */
 
+    // кастомизация статуса пользователя
     if(list[5] == "0")
     {
-        list[5] = "offline";
+        list[5] = tr("offline");
     }
     else
     {
-        list[5] = "online";
+        list[5] = tr("online");
     }
 
     bool isFriend;
@@ -196,6 +214,7 @@ void MainWindow::gettingFriends(QString str, QString mode)
     FriendWidget* friendWidget = new FriendWidget(list[0], list[1],
             list[2], list[3], list[4], list[5], list[6], list[7], id, identificationNumber, isFriend, this);
 
+    // проверка по mode к какому типу относиться переданный пользователь
     if(mode == "friend")
     {
         friendsVBox->addWidget(friendWidget, Qt::AlignTop);
@@ -225,9 +244,11 @@ void MainWindow::gettingFriends(QString str, QString mode)
         friendsVBox->insertWidget(0, friendWidget, Qt::AlignTop);
     }
 
+    // по нажатию на виджет пользователя открывать чат с ним
     connect(friendWidget, SIGNAL(clicked(FriendWidget*)), this, SLOT(clickedFriendWidget(FriendWidget*)));
 }
 
+// добавление нового недавнего вызова на самый верх layout'а
 void MainWindow::addRecent(QString id)
 {
     for(int i = 0; i < recentWidgets.size(); i++)
@@ -240,15 +261,18 @@ void MainWindow::addRecent(QString id)
         }
     }
 
+    // отправка на сервер нового последнего вызова
     SlotSendToServer("/newRecent/" + id);
 }
 
+// создание виджета создания/открытия комнаты
+// !!!---не работает---!!!
 void MainWindow::createSettingRoomWidget()
 {
     settingRoom = new QWidget;
 
     QLabel* nameRoomLabel = new QLabel(settingRoom);
-    nameRoomLabel->setText("name:");
+    nameRoomLabel->setText(tr("name:"));
     nameRoomLabel->move(10, 0);
 
     nameRoom = new QLineEdit(settingRoom);
@@ -256,7 +280,7 @@ void MainWindow::createSettingRoomWidget()
     nameRoom->move(10, 20);
 
     QLabel* passRoomLabel = new QLabel(settingRoom);
-    passRoomLabel->setText("password:");
+    passRoomLabel->setText(tr("password:"));
     passRoomLabel->move(10, 50);
 
     passRoom = new QLineEdit(settingRoom);
@@ -266,30 +290,33 @@ void MainWindow::createSettingRoomWidget()
     QPushButton* createRoom = new QPushButton(settingRoom);
     createRoom->resize(100, 30);
     createRoom->move(10, 100);
-    createRoom->setText("Create");
+    createRoom->setText(tr("Create"));
 
-    connect(createRoom, SIGNAL(clicked(bool)), this, SLOT(CreateRoom()));
+    //connect(createRoom, SIGNAL(clicked(bool)), this, SLOT(CreateRoom()));
 
     QPushButton* openRoom = new QPushButton(settingRoom);
     openRoom->resize(100, 30);
     openRoom->move(160, 100);
-    openRoom->setText("Open");
+    openRoom->setText(tr("Open"));
 
-    connect(openRoom, SIGNAL(clicked(bool)), this, SLOT(OpenRoom()));
+    //connect(openRoom, SIGNAL(clicked(bool)), this, SLOT(OpenRoom()));
 }
 
+// принятие вызова
 void MainWindow::upCalling(QString name, QString pass)
 {
+    // если соединения с аудио сервером нет, то нельзя принять звонок
     if(isConnectedAudio == false)
     {
         return;
     }
+    // проверка есть ли на данный момент существующие разговоры с другими пользователями
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true)
         {
-            QMessageBox::critical(NULL,QObject::tr("Error"),
-                                  "Unable to start a new call because another call has already been initiated");
+            QMessageBox::critical(NULL,tr("Error"),
+                                  tr("Unable to start a new call because another call has already been initiated"));
             return;
         }
     }
@@ -297,6 +324,7 @@ void MainWindow::upCalling(QString name, QString pass)
 
     QString nameFriend = name.left(pos);
 
+    // находим в списке друзей друга, который звонит и открываем с ним чат
     if(friendInf == nullptr || nameFriend != friendInf->getLogin())
     {
         for(int i = 0; i < friendWidgets.count(); i++)
@@ -311,12 +339,14 @@ void MainWindow::upCalling(QString name, QString pass)
 
     QThread::msleep(30);
 
+    // отправка серверу открытия комнаты
     SlotSendToServer("/30/" + name + ":" + pass);
     isOpenedRoom = true;
     startRecord();
 
     friendInf->setCallStatus(true);
 
+    // изменение состояния звонка
     for(int i = 0; i < recentWidgets.count(); i++)
     {
         if(recentWidgets[i]->getId() == friendInf->getId())
@@ -329,18 +359,22 @@ void MainWindow::upCalling(QString name, QString pass)
 
     QThread::msleep(30);
 
+    // отправка серверу согласие начать звонок
     SlotSendToServer("/beginnigCall/" + friendInf->getId());
 }
 
+// конец звонка
 void MainWindow::endCall()
 {
     QString idFr;
 
+    // изменение состояния звонка
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true)
         {
             idFr = friendWidgets.at(i)->getId();
+            // отправка этому другу сообщения об окончании звонка
             SlotSendToServer("/message/" + friendWidgets.at(i)->getId() + "!" + "/endingCall/"  +
                              friendWidgets.at(i)->getTimeCall().toString("hh:mm:ss"));
             friendWidgets.at(i)->setCallStatus(false);
@@ -349,6 +383,7 @@ void MainWindow::endCall()
         }
     }
 
+    // изменение состояния звонка
     for(int i = 0; i < recentWidgets.count(); i++)
     {
         if(recentWidgets.at(i)->getCallStatus() == true)
@@ -361,6 +396,7 @@ void MainWindow::endCall()
 
     QThread::msleep(15);
 
+    // отправка окончания звонка с этим другом
     SlotSendToServer("/endingCall/" + idFr);
 
     if(friendInf->getId() == idFr)
@@ -376,9 +412,11 @@ void MainWindow::endCall()
 
     QThread::msleep(30);
 
+    // отправка серверу окончания звонка и закрытие комнаты
     SlotSendToServer("/endCall/");
 }
 
+// включать/выключать микрофон по нажатию кнопки
 void MainWindow::clickedMicroButton()
 {
     if(isMicro == true)
@@ -395,11 +433,12 @@ void MainWindow::clickedMicroButton()
     isMicro ? isMicro = false : isMicro = true;
 }
 
+// включать/выключать веб-камеру по нажатию кнопки
 void MainWindow::clickedVideoButton()
 {
     if(webCam->getIsCamera() == false)
     {
-        QMessageBox::critical(NULL,QObject::tr("Error"), "Webcam is not connected!");
+        QMessageBox::critical(NULL,tr("Error"), tr("Webcam is not connected!"));
         return;
     }
 
@@ -418,6 +457,7 @@ void MainWindow::clickedVideoButton()
     isVideo ? isVideo = false : isVideo = true;
 }
 
+// нажатие по профилю пользователя
 void MainWindow::clickedProfileWidget()
 {
     cleanLayout(rightVBox);
@@ -448,9 +488,10 @@ void MainWindow::clickedProfileWidget()
                             "QPushButton:!hover { background: rgb(255,255,255); }");
 
     QPushButton* changeIcon = new QPushButton;
-    changeIcon->setText("Change Icon");
+    changeIcon->setText(tr("Change Icon"));
     changeIcon->setStyleSheet(qss);
 
+    // по нажатию на кнопку изменение иконки пользователя создать объект и загрузить, выбранную пользователем иконку
     connect(changeIcon, &QPushButton::clicked, [this](){
 
         FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber, "uploadMainIcon");
@@ -461,9 +502,10 @@ void MainWindow::clickedProfileWidget()
     });
 
     QPushButton* settingsB = new QPushButton;
-    settingsB->setText("Settings");
+    settingsB->setText(tr("Settings"));
     settingsB->setStyleSheet(qss);
 
+    // открывает настройки
     connect(settingsB, SIGNAL(clicked(bool)), this, SLOT(clickedSettings()));
 
     profileLeftVBox->addWidget(profileIcon);
@@ -471,11 +513,13 @@ void MainWindow::clickedProfileWidget()
     profileLeftVBox->addWidget(settingsB);
     profileLeftVBox->addStretch();
 
+    // информация о пользователе
+
     QVBoxLayout* profileRightVBox = new QVBoxLayout;
 
     QHBoxLayout* profileNameHBox = new QHBoxLayout;
 
-    QLabel* profileNameLabel = new QLabel("Name:    ");
+    QLabel* profileNameLabel = new QLabel(tr("Name:    "));
 
     QLineEdit* profileName = new QLineEdit;
     profileName->setText(name);
@@ -486,7 +530,7 @@ void MainWindow::clickedProfileWidget()
 
     QHBoxLayout* profileEmailHBox = new QHBoxLayout;
 
-    QLabel* profileEmailLabel = new QLabel("Email:    ");
+    QLabel* profileEmailLabel = new QLabel(tr("Email:    "));
 
     QLineEdit* profileEmail = new QLineEdit;
     profileEmail->setText(email);
@@ -497,7 +541,7 @@ void MainWindow::clickedProfileWidget()
 
     QHBoxLayout* profilePhoneHBox = new QHBoxLayout;
 
-    QLabel* profilePhoneLabel = new QLabel("Phone:    ");
+    QLabel* profilePhoneLabel = new QLabel(tr("Phone:    "));
 
     QLineEdit* profilePhone = new QLineEdit;
     profilePhone->setText(phone);
@@ -508,7 +552,7 @@ void MainWindow::clickedProfileWidget()
 
     QHBoxLayout* profileOldPassHBox = new QHBoxLayout;
 
-    QLabel* profileOldPassLabel = new QLabel("enter old password:    ");
+    QLabel* profileOldPassLabel = new QLabel(tr("enter old password:    "));
 
     QLineEdit* profileOldPass = new QLineEdit;
     profileOldPass->setEchoMode(QLineEdit::Password);
@@ -520,7 +564,7 @@ void MainWindow::clickedProfileWidget()
 
     QHBoxLayout* profileNewPassHBox = new QHBoxLayout;
 
-    QLabel* profileNewPassLabel = new QLabel("enter new password:    ");
+    QLabel* profileNewPassLabel = new QLabel(tr("enter new password:    "));
 
     QLineEdit* profileNewPass = new QLineEdit;
     profileNewPass->setEchoMode(QLineEdit::Password);
@@ -532,7 +576,7 @@ void MainWindow::clickedProfileWidget()
 
     QHBoxLayout* profileNewPassAgainHBox = new QHBoxLayout;
 
-    QLabel* profileNewPassAgainLabel = new QLabel("enter new password again:    ");
+    QLabel* profileNewPassAgainLabel = new QLabel(tr("enter new password again:    "));
 
     QLineEdit* profileNewPassAgain = new QLineEdit;
     profileNewPassAgain->setEchoMode(QLineEdit::Password);
@@ -550,6 +594,7 @@ void MainWindow::clickedProfileWidget()
     saveChangesButton->setIcon(QIcon(":/Icons/checkmark_circled_icon.png").pixmap(64, 64));
     saveChangesButton->setStyleSheet(qss);
 
+    // проверка и отправка серверу данных для обновления информации о пользователе
     connect(saveChangesButton, &QPushButton::clicked, [this, profileName, profileEmail,
             profilePhone, profileOldPass, profileNewPass, profileNewPassAgain]()
     {
@@ -579,21 +624,21 @@ void MainWindow::clickedProfileWidget()
             {
                 if(profileNewPass->text() == profileOldPass->text())
                 {
-                    QMessageBox::critical(NULL,QObject::tr("Error"),
-                                          "Old password and new password must not be the same!");
+                    QMessageBox::critical(NULL,tr("Error"),
+                                          tr("Old password and new password must not be the same!"));
                     return;
                 }
 
                 if(profileNewPass->text() != profileNewPassAgain->text())
                 {
-                    QMessageBox::critical(NULL,QObject::tr("Error"), "Passwords do not match!");
+                    QMessageBox::critical(NULL,tr("Error"), tr("Passwords do not match!"));
                     return;
                 }
                 message += "/newPass/" + profileNewPass->text();
             }
             else
             {
-                QMessageBox::critical(NULL,QObject::tr("Error"), "Fill in all the fields!");
+                QMessageBox::critical(NULL,tr("Error"), tr("Fill in all the fields!"));
                 return;
             }
             SlotSendToServer("/profileInfo/" + ("/changePass/" + message));
@@ -605,6 +650,7 @@ void MainWindow::clickedProfileWidget()
     canselChangesButton->setIcon(QIcon(":/Icons/close_circled_icon.png").pixmap(64, 64));
     canselChangesButton->setStyleSheet(qss);
 
+    // очистка и возврат к значениям поумолчанию полей
     connect(canselChangesButton, &QPushButton::clicked, [this, profileName, profileEmail,
             profilePhone, profileOldPass, profileNewPass, profileNewPassAgain](){
         profileName->setText(this->name);
@@ -643,8 +689,10 @@ void MainWindow::clickedProfileWidget()
     rightVBox->addLayout(profileHBox);
 }
 
+// поиск
 void MainWindow::search(QString str)
 {
+    // удаление всех потенциальных друзей (если есть)
     for(int i = 0; i < potentialFriendsWidgets.size(); i++)
     {
         for(int j = 0; j < friendsVBox->count(); j++)
@@ -657,6 +705,7 @@ void MainWindow::search(QString str)
     }
     potentialFriendsWidgets.clear();
 
+    // если строка поиска пуста то показать всех друзей
     if(str == "")
     {
         for(int i = 0; i < friendsVBox->count(); i++)
@@ -673,6 +722,7 @@ void MainWindow::search(QString str)
         return;
     }
 
+    // скрыть всех друзей
     for(int i = 0; i < friendsVBox->count(); i++)
     {
         if(dynamic_cast<QLabel* >(friendsVBox->itemAt(i)->widget()))
@@ -685,6 +735,7 @@ void MainWindow::search(QString str)
         }
     }
 
+    // показать только тех друзей, которые удовлетворяю требованию поиска
     for(int i = 0; i < friendsVBox->count(); i++)
     {
         if(dynamic_cast<FriendWidget* >(friendsVBox->itemAt(i)->widget())->
@@ -693,14 +744,16 @@ void MainWindow::search(QString str)
             friendsVBox->itemAt(i)->widget()->show();
         }
     }
-    QLabel* line = new QLabel("potential friends");
+    QLabel* line = new QLabel(tr("potential friends"));
     line->setAlignment(Qt::AlignCenter);
     line->setFixedHeight(20);
     friendsVBox->addWidget(line, Qt::AlignTop);
 
+    // запрос серверу на получение потенциальных друзей
     SlotSendToServer("/potentialFriends/" + str);
 }
 
+// показать/скрыть главное окно по нажатию на иконку в трее
 void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     if(reason == QSystemTrayIcon::Trigger)
@@ -716,18 +769,25 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
     }
 }
 
+// показать окно настроек
 void MainWindow::clickedSettings()
 {
     SettingsWidget* settingsW = new SettingsWidget;
     settingsW->setAttribute(Qt::WA_ShowModal, true);
+    connect(settingsW, &SettingsWidget::updateSettings, [this](){
+        emit(updateSettings());
+    });
     settingsW->show();
 }
 
+// не принимать вызов
 void MainWindow::noUpCalling(QString name, QString pass)
 {
+    // закрытие комнаты
     SlotSendToServer("/31/" + name + ":" + pass);
 }
 
+// создание комнаты
 void MainWindow::CreateRoom()
 {
     SlotSendToServer(nameRoom->text() + ":" + passRoom->text() + "/2/");
@@ -736,6 +796,7 @@ void MainWindow::CreateRoom()
     startRecord();
 }
 
+// открытие комнаты
 void MainWindow::OpenRoom()
 {
     SlotSendToServer(nameRoom->text() + ":" + passRoom->text() + "/3/");
@@ -743,6 +804,7 @@ void MainWindow::OpenRoom()
     isOpenedRoom = true;
 }
 
+// слот для приема сообщение от сервера
 void MainWindow::SlotReadyRead()
 {
     QByteArray buffer;
@@ -753,7 +815,7 @@ void MainWindow::SlotReadyRead()
     QString str;
     in >> str;
 
-    qDebug() << "read:  " << str;
+    //qDebug() << "read:  " << str;
 
     if(buffer.indexOf("/camera/") != -1)
     {
@@ -767,51 +829,60 @@ void MainWindow::SlotReadyRead()
         imgWin(video);
         video.clear();
     }
+    // начало показа веб-камеры другом
     else if(buffer.indexOf("/startRecordVideo/") != -1)
     {
         buffer.remove(0, 18);
         // P.S. buffer - это id отправителя
         turnVideoBroadcast(buffer.toInt(), true);
     }
+    // окончание показа веб-камеры другом
     else if(buffer.indexOf("/stopRecordVideo/") != -1)
     {
         buffer.remove(0, 17);
         // P.S. buffer - это id отправителя
         turnVideoBroadcast(buffer.toInt(), false);
     }
+    // начало звонка
     else if(str.indexOf("/9/") != -1)
     {
         startRecord();
     }
+    // добавление друзей в layout
     else if(str.indexOf("/5/") != -1)
     {
         str.remove("/5/");
 
         gettingFriends(str, "friend");
     }
+    // добавление последних вызовов в layout
     else if(str.indexOf("/recent/") != -1)
     {
         str.remove("/recent/");
 
         gettingFriends(str, "recent");
     }
+    // добавление потенциальных друзей в layout
     else if(str.indexOf("/potentialFriends/") != -1)
     {
         str.remove("/potentialFriends/");
 
         gettingFriends(str, "potentialFriends");
     }
+    // добавление нового последнего вызова в layout
     else if(str.indexOf("/newRecent/") != -1)
     {
         str.remove("/newRecent/");
 
         gettingFriends(str, "newRecent");
     }
+    // добавление запроса в друзья в layout
     else if(str.indexOf("/inviteToFriend/") != -1)
     {
         str.remove("/inviteToFriend/");
         gettingFriends(str, "inviteToFriend");
     }
+    // согласие друга на добавление в друзья
     else if(str.indexOf("/acceptInviteToFriend/") != -1)
     {
         str.remove("/acceptInviteToFriend/");
@@ -831,6 +902,7 @@ void MainWindow::SlotReadyRead()
             }
         }
     }
+    // получение истории сообщений
     else if(str.indexOf("/getMessages/") != -1)
     {
         str.remove("/getMessages/");
@@ -877,11 +949,11 @@ void MainWindow::SlotReadyRead()
             {
                 if(idChat == id)
                 {
-                    message = name + " " + QString::fromLocal8Bit("начал разговор");
+                    message = name + " " + tr("started a conversation");
                 }
                 else
                 {
-                    message = friendInf->getName() + " " + QString::fromLocal8Bit("начал разговор");
+                    message = friendInf->getName() + " " + tr("started a conversation");
                 }
             }
 
@@ -895,12 +967,28 @@ void MainWindow::SlotReadyRead()
             {
                 message.remove(0, 12);
 
-                message = QString::fromLocal8Bit("Звонок завершен. Продолжительность: ") + message;
+                message = tr("The call is complete. Duration: ") + message;
             }
 
-            if(idChat == id && idFriend == friendInf->getId())
+            if(idFriend == friendInf->getId() || idFriend == id)
             {
-                Message* m = new Message(message, time, Message::right);
+                Message::side sideMess;
+                if(idChat == id)
+                {
+                    sideMess = Message::right;
+                }
+                else
+                {
+                    sideMess = Message::left;
+                    if(status == "1")
+                    {
+                        friendInf->readUnreadMessages();
+                        SlotSendToServer("/readUnreadMessages/" + idMessage + "!"  + friendInf->getId());
+                        QThread::msleep(15);
+                    }
+                }
+
+                Message* m = new Message(message, time, sideMess);
                 if(numberBlockMessage == "1")
                 {
                     if(messageVBox->count() == 1 || Date != QDate::fromString(date,"dd MM yyyy"))
@@ -921,20 +1009,33 @@ void MainWindow::SlotReadyRead()
                             messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
                             Date = QDate::fromString(date,"dd MM yyyy");
                             scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                                      + 53);
+                                                                      + 33);
                             first = false;
                         }
                         else if(first == false)
                         {
-                            Date = QDate::fromString(date,"dd MM yyyy");
-                            first = true;
+                            if(lastDate == Date)
+                            {
+                                messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
+                                Date = QDate::fromString(date,"dd MM yyyy");
+                                scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
+                                                                          + 33);
+                                first = true;
+                            }
+                            else
+                            {
+                                Date = QDate::fromString(date,"dd MM yyyy");
+                                first = true;
+                            }
                         }
                     }
                     messageWidgets.push_front(m);
                     messageVBox->insertWidget(0, m);
                     scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                              + m->sizeMessageL() + 40);
+                                                              + m->sizeMessageL() + 20);
                 }
+                // если этот сообщение, загрузка файла, то создаем сигнал нажатия
+                // на это сообщение и скачиваем файл с сервера
                 if(isDownloadFile == true)
                 {
                     connect(m, &Message::clicked, [this, message, idChat](){
@@ -944,73 +1045,25 @@ void MainWindow::SlotReadyRead()
                     });
                 }
             }
-            else if(idChat == friendInf->getId() && idFriend == id)
-            {
-                Message* m = new Message(message, time, Message::left);
-                if(numberBlockMessage == "1")
-                {
-                    if(messageVBox->count() == 1 || Date != QDate::fromString(date,"dd MM yyyy"))
-                    {
-                        messageVBox->addWidget(new QLabel(
-                                                   QDate::fromString(date,"dd MM yyyy").toString("dd MMMM yyyy")));
-                        Date = QDate::fromString(date,"dd MM yyyy");
-                    }
-                    messageWidgets.append(m);
-                    messageVBox->addWidget(m);
-                }
-                else
-                {
-                    if(Date != QDate::fromString(date,"dd MM yyyy"))
-                    {
-                        if(first == true)
-                        {
-                            messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
-                            Date = QDate::fromString(date,"dd MM yyyy");
-                            scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                                      + 53);
-                            first = false;
-                        }
-                        else if(first == false)
-                        {
-                            Date = QDate::fromString(date,"dd MM yyyy");
-                            first = true;
-                        }
-                    }
-                    messageWidgets.push_front(m);
-                    messageVBox->insertWidget(0, m);
-                    scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                              + m->sizeMessageL() + 40);
-                }
-                if(status == "1")
-                {
-                    friendInf->readUnreadMessages();
-                    SlotSendToServer("/readUnreadMessages/" + idMessage + "!"  + friendInf->getId());
-                    QThread::msleep(15);
-                }
-                if(isDownloadFile == true)
-                {
-                    connect(m, &Message::clicked, [this, message, idChat](){
-                        FileTransfer* fileTransfer = new FileTransfer(this->id, this->identificationNumber,
-                                                                      "downloadFile", idChat + "!" + message);
-                        fileTransfer->start();
-                    });
-                }
-            }
+            // скролл до конца вниз
             if(isScrolling == true)
             {
                 QTimer::singleShot(100, this, [this](){
                     scrollarea->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMaximum);});
             }
 
+            // добавление даты последнего сообщения на самый верх
             if(numberBlockMessage != "1" && i + 1 == list.count() - 1)
             {
                 Date = QDate::fromString(date,"dd MM yyyy");
+                lastDate = Date;
                 messageVBox->insertWidget(0, new QLabel(Date.toString("dd MMMM yyyy")));
                 scrollarea->verticalScrollBar()->setValue(scrollarea->verticalScrollBar()->value()
-                                                          + 53);
+                                                          + 33);
             }
         }
     }
+    // получение нового сообщения
     else if(str.indexOf("/newMessage/") != -1)
     {
         str.remove("/newMessage/");
@@ -1037,12 +1090,12 @@ void MainWindow::SlotReadyRead()
             if(idSender == id)
             {
                 addRecent(idChat);
-                message = name + " " + QString::fromLocal8Bit("начал разговор");
+                message = name + " " + tr("started a conversation");
             }
             else
             {
                 addRecent(idSender);
-                message = friendInf->getName() + " " + QString::fromLocal8Bit("начал разговор");
+                message = friendInf->getName() + " " + tr("started a conversation");
             }
         }
 
@@ -1050,7 +1103,7 @@ void MainWindow::SlotReadyRead()
         {
             message.remove(0, 12);
 
-            message = QString::fromLocal8Bit("Звонок завершен. Продолжительность: ") + message;
+            message = tr("The call is complete. Duration: ") + message;
         }
 
         if(message.indexOf("/downloadFile/") != -1)
@@ -1115,11 +1168,13 @@ void MainWindow::SlotReadyRead()
                 }
             }
         }
+        // проигрывание уведомления
         if(idSender != id)
         {
             player->play();
         }
     }
+    // попытка звонка друга пользователю
     else if(str.indexOf("/29/") != -1)
     {
         str.remove("/29/");
@@ -1131,6 +1186,7 @@ void MainWindow::SlotReadyRead()
         calling* callWidget = new calling(nameRoom,  list[1], this);
         callWidget->show();
     }
+    // обновление статуса друга
     else if(str.indexOf("/33/") != -1)
     {
         str.remove("/33/");
@@ -1145,6 +1201,7 @@ void MainWindow::SlotReadyRead()
                 {
                     dynamic_cast<QLabel*>(mainScreenWithButtons->children().back())->setText(list[1]);
                 }
+                // если друг выщел из сети, но разговор ещё был, завершаем разговор
                 if(friendW->getCallStatus() == true)
                 {
                     clickedFriendWidget(friendW);
@@ -1157,6 +1214,7 @@ void MainWindow::SlotReadyRead()
             }
         }
 
+        // меняем статус друга в списке
         foreach (FriendWidget* friendW, recentWidgets)
         {
             if(friendW->getId() == list[0])
@@ -1170,10 +1228,12 @@ void MainWindow::SlotReadyRead()
         }
 
     }
+    // начало звонка
     else if(str.indexOf("/beginnigCall/") != -1)
     {
         str.remove("/beginnigCall/");
 
+        // обновление статуса начала звонка
         for(int i = 0; i < friendWidgets.count(); i++)
         {
             if(friendWidgets[i]->getId() == str)
@@ -1183,6 +1243,7 @@ void MainWindow::SlotReadyRead()
             }
         }
 
+        // обновление статуса начала звонка
         for(int i = 0; i < recentWidgets.count(); i++)
         {
             if(recentWidgets[i]->getId() == str)
@@ -1191,6 +1252,7 @@ void MainWindow::SlotReadyRead()
             }
         }
 
+        // если это был виде звонок, то включить веб-камеру
         if(isVideoCall)
         {
             clickedVideoButton();
@@ -1200,16 +1262,20 @@ void MainWindow::SlotReadyRead()
         isStartedCall = false;
         callPlayer->stop();
 
+        // отправка другу сообщение о начале звонка
         SlotSendToServer("/message/" + friendInf->getId() + "!" + "/beginningCall/");
     }
+    // закрытие комнаты
     else if(buffer.indexOf("/outoftheroom/") != -1)
     {
         outOfTheRoom();
     }
+    // окончание звонка
     else if(str.indexOf("/endingCall/") != -1)
     {
         outOfTheRoom();
     }
+    // обновление информации о друге(имя и т.д.)
     else if(str.indexOf("/updateFriendInfo/") != -1)
     {
         str.remove("/updateFriendInfo/");
@@ -1228,6 +1294,7 @@ void MainWindow::SlotReadyRead()
             }
         }
     }
+    // обновление иконки друга(скачивание её с сервера)
     else if(str.indexOf("/updateFriendIcon/") != -1)
     {
         str.remove("/updateFriendIcon/");
@@ -1242,6 +1309,7 @@ void MainWindow::SlotReadyRead()
             }
         }
     }
+    // обновление иконки пользователя(скачивание её с сервера)
     else if(str.indexOf("/updateMainIcon/") != -1)
     {
         str.remove("/updateMainIcon/");
@@ -1261,13 +1329,15 @@ void MainWindow::SlotReadyRead()
             }
         });
     }
+    // ошибка неверного пароля
     else if(str.indexOf("/Incorrect password/") != -1)
     {
-        QMessageBox::critical(NULL,QObject::tr("Error"), "Incorrect password!");
+        QMessageBox::critical(NULL,tr("Error"), tr("Incorrect password!"));
     }
+    // информации о правильном пароле
     else if(str.indexOf("/Password changed/") != -1)
     {
-        QMessageBox::information(NULL,QObject::tr("Information"), "Password changed!");
+        QMessageBox::information(NULL,tr("Information"), tr("Password changed!"));
     }
     else
     {
@@ -1275,18 +1345,14 @@ void MainWindow::SlotReadyRead()
     }
 }
 
-void MainWindow::sendSound(QByteArray buff)
-{
-    Socket->write(buff);
-    Socket->flush();
-}
-
+// отправление потока веб-камеры на сервер
 void MainWindow::sendCamera(QByteArray buff)
 {
     Socket->write(buff);
     Socket->flush();
 }
 
+// передача трансляции веб-камеры от друга
 void MainWindow::imgWin(QByteArray buff)
 {
     if(friendInf->getVideoStatus() == true)
@@ -1313,8 +1379,10 @@ void MainWindow::imgWin(QByteArray buff)
     }
 }
 
+// включает/выключает трансляию веб-камеры
 void MainWindow::turnVideoBroadcast(int idSender, bool onOff)
 {
+    // изменяем статус показа веб-камеры друга
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getId().toInt() == idSender)
@@ -1333,6 +1401,7 @@ void MainWindow::turnVideoBroadcast(int idSender, bool onOff)
         }
     }
 
+    // добавляем окно
     if(friendInf->getId().toInt() == idSender)
     {
         cleanLayout(camAndIconLayout);
@@ -1351,6 +1420,7 @@ void MainWindow::turnVideoBroadcast(int idSender, bool onOff)
     }
 }
 
+// обновление информации пользователя
 void MainWindow::updateInfo(QString info)
 {
     if(info.indexOf("/name/") != -1)
@@ -1373,14 +1443,14 @@ void MainWindow::updateInfo(QString info)
     }
 }
 
+// завершение звонка и выход из комнаты
 void MainWindow::outOfTheRoom()
 {
-    qDebug("out of the room");
+    // изменение статуса звонка
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true)
         {
-            qDebug("friend");
             friendWidgets.at(i)->setCallStatus(false);
             friendWidgets.at(i)->setVideoStatus(false);
             clickedFriendWidget(friendWidgets.at(i));
@@ -1390,7 +1460,6 @@ void MainWindow::outOfTheRoom()
     {
         if(recentWidgets.at(i)->getCallStatus() == true)
         {
-            qDebug("recent");
             recentWidgets.at(i)->setCallStatus(false);
             recentWidgets.at(i)->setVideoStatus(false);
         }
@@ -1401,15 +1470,18 @@ void MainWindow::outOfTheRoom()
     callPlayer->stop();
     friendInf->setIsTryingCall("false");
 
+    // завершаем трансляцию аудио и видео
     QMetaObject::invokeMethod(audio, "stopRecord", Qt::DirectConnection);
     QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
 }
 
+// аудио сервер подключен
 void MainWindow::connectedAudio()
 {
     isConnectedAudio = true;
 }
 
+// полная очистка layout'а
 void MainWindow::cleanLayout(QLayout* oL)
 {
     QLayoutItem *poLI;
@@ -1430,6 +1502,7 @@ void MainWindow::cleanLayout(QLayout* oL)
     }
 }
 
+// создание виджета разговорного чата
 void MainWindow::createCallWidget()
 {
     // удаляем верхний layout, где информаия о друге и кнопки вызова
@@ -1465,6 +1538,7 @@ void MainWindow::createCallWidget()
     microButton->move(15, 15);
     microButton->resize(32, 32);
 
+    // изменение состояния микрофона
     connect(microButton, SIGNAL(clicked(bool)), this, SLOT(clickedMicroButton()));
 
     QPushButton* videoButton = new QPushButton(buttons);
@@ -1479,6 +1553,7 @@ void MainWindow::createCallWidget()
     videoButton->move(62, 15);
     videoButton->resize(32, 32);
 
+    // изменение состояния веб-камера
     connect(videoButton, SIGNAL(clicked(bool)), this, SLOT(clickedVideoButton()));
 
     QPushButton* callEndButton = new QPushButton(buttons);
@@ -1486,6 +1561,7 @@ void MainWindow::createCallWidget()
     callEndButton->move(109, 15);
     callEndButton->resize(32, 32);
 
+    // завершение звонка
     connect(callEndButton, SIGNAL(clicked(bool)), this, SLOT(endCall()));
 
     camAndIconLayout = new QHBoxLayout;
@@ -1523,6 +1599,7 @@ void MainWindow::createCallWidget()
     rightVBox->insertLayout(0, callVBox);
 }
 
+// создание виджета простого чата
 void MainWindow::createMainFriendWidget()
 {
     QHBoxLayout* hBox = new QHBoxLayout;
@@ -1548,6 +1625,7 @@ void MainWindow::createMainFriendWidget()
     callButton->move(15, 15);
     callButton->resize(32, 32);
 
+    // начало звонка другу
     connect(callButton, &QPushButton::clicked, [this](){
         clickedCallButton();
         isVideoCall = false;
@@ -1558,10 +1636,11 @@ void MainWindow::createMainFriendWidget()
     videoButton->move(62, 15);
     videoButton->resize(32, 32);
 
+    // начало видеозвонка другу
     connect(videoButton, &QPushButton::clicked, [this](){
         if(webCam->getIsCamera() == false)
         {
-            QMessageBox::critical(NULL,QObject::tr("Error"), "Webcam is not connected!");
+            QMessageBox::critical(NULL,tr("Error"), tr("Webcam is not connected!"));
             return;
         }
         clickedCallButton();
@@ -1574,8 +1653,10 @@ void MainWindow::createMainFriendWidget()
     rightVBox->insertLayout(0, hBox);
 }
 
+// отлавливаем ивент закрытия комнаты
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    // если выход был нажат не в меню иконки в трее, то просто скрыть окно
     if(isFinalClosing == false)
     {
         if(this->isVisible())
@@ -1584,12 +1665,15 @@ void MainWindow::closeEvent(QCloseEvent *event)
             this->hide();
         }
     }
+    // если нет, просто закрываем приложение
 }
 
+// создание виджета чата с другом
 void MainWindow::clickedFriendWidget(FriendWidget *friendW)
 {
     isScrolling = true;
     numberBlockMessage = "1";
+    Date.setDate(1900, 1, 1);
 
     cleanLayout(rightVBox);
 
@@ -1606,6 +1690,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
         createMainFriendWidget();
     }
 
+    // создание виджета прокрутки
     scrollarea = new QScrollArea();
     connect(scrollarea->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(requestNewMessage(int)));
     scrollarea->setWidgetResizable(true);
@@ -1614,6 +1699,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     ChatWidget *messageWidget = new ChatWidget(id, identificationNumber, friendInf->getId());
     scrollarea->setWidget(messageWidget);
 
+    // отправка другу файла
     connect(messageWidget, &ChatWidget::sendFriendFileMessage, [this](QString idFriend, QString nameFile){
         this->SlotSendToServer("/message/" + idFriend + "!" + "/downloadFile/" + nameFile);
     });
@@ -1640,6 +1726,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     lineMessageBox->addWidget(lineMessage);
     lineMessageBox->addWidget(sendMessage);
 
+    // если этот пользователе не друг, то кастомизируем окно
     if(friendW->getIsFriend() == false)
     {
         QPushButton* addFriendB = new QPushButton;
@@ -1656,7 +1743,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
         addFriendB->setStyleSheet(qss);
         if(friendW->getIsAcceptFriendInvitation() == "true")
         {
-            addFriendB->setText("Accept friend invitation");
+            addFriendB->setText(tr("Accept friend invitation"));
             connect(addFriendB, &QPushButton::clicked, [this, friendW](){
                 friendWidgets.append(friendW);
                 friendW->setIsEnableInviteToFriend(false);
@@ -1666,7 +1753,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
                 clickedFriendWidget(friendW);
             });
             QHBoxLayout* buttonHBox = new QHBoxLayout;
-            QPushButton* noAddFriendB = new QPushButton("Do not accept friend invitation");
+            QPushButton* noAddFriendB = new QPushButton(tr("Do not accept friend invitation"));
             noAddFriendB->setStyleSheet(qss);
             connect(noAddFriendB, &QPushButton::clicked, [this, friendW](){
                 for(int i = 0; i < friendsVBox->count(); i++)
@@ -1686,7 +1773,7 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
         }
         else
         {
-            addFriendB->setText("Add as Friend");
+            addFriendB->setText(tr("Add as Friend"));
             connect(addFriendB, &QPushButton::clicked, [this, friendW, addFriendB](){
                 friendW->setIsEnableInviteToFriend(false);
                 addFriendB->setEnabled(false);
@@ -1698,32 +1785,38 @@ void MainWindow::clickedFriendWidget(FriendWidget *friendW)
     rightVBox->addWidget(scrollarea);
     rightVBox->addLayout(lineMessageBox);
 
+    // отправка на сервер запрос на получение истории сообщений
     SlotSendToServer("/HistoryMessage/" + friendInf->getId() + "!" + numberBlockMessage);
 }
 
+// начало звонка другу
 void MainWindow::clickedCallButton()
 {
+    // проверка этот аользователь друг или нет
     if(friendInf->getIsFriend() == false)
     {
         QMessageBox msgBox;
-        msgBox.setText("This user is not your friend");
+        msgBox.setText(tr("This user is not your friend"));
         msgBox.exec();
         return;
     }
+    // поключен ли аудио сервер
     if(isConnectedAudio == false)
     {
         return;
     }
+    // есть ли ещё не завершённые звонки
     for(int i = 0; i < friendWidgets.count(); i++)
     {
         if(friendWidgets.at(i)->getCallStatus() == true || isStartedCall == true)
         {
-            QMessageBox::critical(NULL,QObject::tr("Error"),
-                                  "Unable to start a new call because another call has already been initiated");
+            QMessageBox::critical(NULL,tr("Error"),
+                                  tr("Unable to start a new call because another call has already been initiated"));
             return;
         }
     }
-    if(friendInf->getStatus() == "online")
+    // проверка в сети ли друг
+    if(friendInf->getStatus() == tr("online"))
     {
         SlotSendToServer("/19/" + friendInf->getId());
 
@@ -1737,21 +1830,24 @@ void MainWindow::clickedCallButton()
     else
     {
         QMessageBox msgBox;
-        msgBox.setText("Friend not online");
+        msgBox.setText(tr("Friend not online"));
         msgBox.exec();
     }
 }
 
+// отправка сообщения другу
 void MainWindow::clickedSendMessageButton()
 {
+    // проверка этот пользователь друг
     if(lineMessage->text() != "" && friendInf->getIsFriend() == false)
     {
         lineMessage->clear();
         QMessageBox msgBox;
-        msgBox.setText("This user is not your friend");
+        msgBox.setText(tr("This user is not your friend"));
         msgBox.exec();
         return;
     }
+    // проверка не пустое ли сообщение
     if(lineMessage->text() != "")
     {
         SlotSendToServer("/message/" + friendInf->getId() + "!" + lineMessage->text());
@@ -1759,6 +1855,7 @@ void MainWindow::clickedSendMessageButton()
     }
 }
 
+// запрос на получение более старых сообщений
 void MainWindow::requestNewMessage(int value)
 {
     if(value == 0 && messageVBox->count() >= 10)

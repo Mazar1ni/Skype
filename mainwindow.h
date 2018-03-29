@@ -46,9 +46,9 @@ signals:
     void stopRecord();
     void startRecordVideo();
     void connectSoundServer(QString idUser, QString identificator);
+    void updateSettings();
 
 public slots:
-    void sendSound(QByteArray buff);
     void sendCamera(QByteArray buff);
     void outOfTheRoom();
     void connectedAudio();

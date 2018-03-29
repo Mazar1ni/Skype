@@ -33,6 +33,7 @@ private:
     QLabel* infoLabel;
     QMovie movie;
     bool isConnected = false;
+    QTimer* connectedTimer;
 
 };
 

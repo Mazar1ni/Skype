@@ -12,6 +12,7 @@ ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QString identN
     profileIcon = new QLabel(this);
     profileIcon->setMinimumSize(64, 64);
 
+    // проверка стандартная ли иконка у другу
     if(iconName == "standart_icon.png")
     {
         profileIcon->setPixmap(QIcon(":/Icons/standart_icon.png").pixmap(64, 64));
@@ -19,6 +20,7 @@ ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QString identN
     else
     {
         QDir().mkdir("IconFriends");
+        // если этой иконки нет, то она скачивается с сервера
         if(!QFile::exists("IconFriends/" + id + "!" + iconName))
         {
             FileTransfer* fileTransfer = new FileTransfer(id, identifiacationNumber,
@@ -37,7 +39,7 @@ ProfileWidget::ProfileWidget(QString n, QString iconN, QString i, QString identN
     profileName->move(70, 15);
 
     QLabel* profileStatus = new QLabel(this);
-    profileStatus->setText("online");
+    profileStatus->setText(tr("online"));
     profileStatus->move(70, 35);
 }
 

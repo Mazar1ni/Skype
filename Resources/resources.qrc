@@ -17,5 +17,6 @@
         <file>Sound/IncomingCall.wav</file>
         <file>Icons/skype_icon.ico</file>
         <file>downloadIndicator.gif</file>
+        <file>Translations/Russian.qm</file>
     </qresource>
 </RCC>

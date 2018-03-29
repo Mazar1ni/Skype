@@ -62,7 +62,6 @@ SOURCES += \
     chatwidget.cpp \
     SignupSignin/authentication.cpp \
     SignupSignin/registration.cpp \
-    SignupSignin/settingsconnection.cpp \
     updater.cpp \
     settingswidget.cpp \
     audio.cpp
@@ -79,10 +78,13 @@ HEADERS += \
     chatwidget.h \
     SignupSignin/authentication.h \
     SignupSignin/registration.h \
-    SignupSignin/settingsconnection.h \
     updater.h \
     settingswidget.h \
     audio.h
 
+TRANSLATIONS += Resources/Translations/Russian.ts
+
 RESOURCES += \
     Resources/resources.qrc
+
+CODECFORSRC     = UTF-8
