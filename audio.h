@@ -8,6 +8,7 @@
 #include <QThread>
 #include <QAudioOutput>
 #include <QTimer>
+#include <QUdpSocket>
 
 class MainWindow;
 
@@ -17,23 +18,22 @@ class Audio : public QObject
 public:
     Audio(QObject* parent = nullptr);
     int ApplyVolumeToSample(short iSample);
-    void SlotSendToServer(QString str);
     void settingPreferences();
+    void setFriendIpPort(QString ip, QString port);
 
 signals:
-    void sendSound(QByteArray);
     void outOfTheRoom();
-    void connectedAudio();
+    void sendToServer(QString);
 
 public slots:
     void removeNoise();
     void startRecord();
     void stopRecord();
-    void connectServer(QString id, QString identificator);
+    void connectStunServer();
     void updateSettings();
 
 private slots:
-    void slotReadyRead();
+    void slotReadyReadUdp();
 
 private:
     MainWindow* window;
@@ -43,14 +43,17 @@ private:
     QIODevice* DeviceInput = nullptr;
     QAudioOutput* AudioOutput;
     QIODevice* DeviceOutput = nullptr;
-    QByteArray buffer;
     int iVolume = 0;
 
     bool isTransmit = false;
 
-    QString idUser;
-    QString identificationNumber;
-    QTcpSocket* socket;
+    QString ip;
+    QString port;
+
+    QHostAddress destAddress;
+    QString destPort;
+
+    QUdpSocket* udpSocket;
 };
 
 #endif // AUDIO_H

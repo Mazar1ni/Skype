@@ -16,7 +16,7 @@ Updater::Updater(QWidget *parent) : QWidget(parent)
 
     // подключение к серверу
     socket = new QTcpSocket;
-    socket->connectToHost("37.230.116.56", 7072);
+    socket->connectToHost("185.146.157.27", 7072);
 
     connect(socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
 

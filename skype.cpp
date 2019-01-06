@@ -37,16 +37,14 @@ void Skype::Connected(QString str)
     // создание главного класса
     Main = new MainWindow(Socket, str, audio, webCam);
     Main->show();
-    connect(audio, SIGNAL(sendSound(QByteArray)),
-            Main, SLOT(sendSound(QByteArray)));
+    connect(audio, SIGNAL(sendToServer(QString)),
+            Main, SLOT(SlotSendToServer(QString)));
     connect(Main, SIGNAL(startRecord()),
             audio, SLOT(startRecord()));
-    connect(Main, SIGNAL(connectSoundServer(QString, QString)),
-            audio, SLOT(connectServer(QString, QString)));
+    connect(Main, SIGNAL(connectStunServer()),
+            audio, SLOT(connectStunServer()));
     connect(audio, SIGNAL(outOfTheRoom()),
             Main, SLOT(outOfTheRoom()));
-    connect(audio, SIGNAL(connectedAudio()),
-            Main, SLOT(connectedAudio()));
     connect(Main, SIGNAL(updateSettings()),
             audio, SLOT(updateSettings()));
 

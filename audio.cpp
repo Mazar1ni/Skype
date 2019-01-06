@@ -1,27 +1,16 @@
 #include "audio.h"
 #include "mainwindow.h"
 #include <QSettings>
+#include <QDebug>
 
-Audio::Audio(QObject *parent) : QObject(parent), buffer(14096, 0)
+Audio::Audio(QObject *parent) : QObject(parent)
 {
     settingPreferences();
 }
 
 int Audio::ApplyVolumeToSample(short iSample)
 {
-    return std::max(std::min(((iSample * iVolume) / 50) ,35535), -35535);
-}
-
-// слот для отправки сообщений серверу
-void Audio::SlotSendToServer(QString str)
-{
-    QByteArray  arrBlock;
-
-    QDataStream out(&arrBlock, QIODevice::WriteOnly);
-    out << str;
-
-    socket->write(arrBlock);
-    socket->flush();
+    return std::max(std::min(((iSample * (iVolume + 50)) / 50) ,35535), -35535);
 }
 
 // установка настроек для микроона и динамиков (поумолчанию или из настроек пользвателя)
@@ -33,15 +22,27 @@ void Audio::settingPreferences()
     Format.setSampleSize(16);
     Format.setCodec("audio/pcm");
     Format.setByteOrder(QAudioFormat::LittleEndian);
-    Format.setSampleType(QAudioFormat::UnSignedInt);
+    Format.setSampleType(QAudioFormat::SignedInt);
 
     QSettings settings("settings.conf", QSettings::IniFormat);
 
     settings.beginGroup("AudioSettings");
 
+    qDebug() << "Suported Input devices";
     QAudioDeviceInfo deviceInput;
     foreach (const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
     {
+        qDebug() << "----------------------------";
+        qDebug() << "Device name: "             << deviceInfo.deviceName();
+        qDebug() << "Supported channel count: "   << deviceInfo.supportedChannelCounts();
+        qDebug() << "Supported Codec: "           << deviceInfo.supportedCodecs();
+        qDebug() << "Supported byte order: "      << deviceInfo.supportedByteOrders();
+        qDebug() << "Supported Sample Rate: "     << deviceInfo.supportedSampleRates();
+        qDebug() << "Supported Sample Size: "     << deviceInfo.supportedSampleSizes();
+        qDebug() << "Supported Sample Type: "     << deviceInfo.supportedSampleTypes();
+        qDebug() << "Preferred Device settings:"  << deviceInfo.preferredFormat();
+        qDebug() << "----------------------------";
+
         if(deviceInfo.deviceName() == settings.value("Microphone").toString())
         {
             deviceInput = deviceInfo;
@@ -54,9 +55,20 @@ void Audio::settingPreferences()
         deviceInput = QAudioDeviceInfo::defaultInputDevice();
     }
 
+    qDebug() << "Suported output devices";
     QAudioDeviceInfo deviceOutput;
     foreach (const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
     {
+        qDebug() << "----------------------------";
+        qDebug() << "Device name: "             << deviceInfo.deviceName();
+        qDebug() << "Supported channel count: "   << deviceInfo.supportedChannelCounts();
+        qDebug() << "Supported Codec: "           << deviceInfo.supportedCodecs();
+        qDebug() << "Supported byte order: "      << deviceInfo.supportedByteOrders();
+        qDebug() << "Supported Sample Rate: "     << deviceInfo.supportedSampleRates();
+        qDebug() << "Supported Sample Size: "     << deviceInfo.supportedSampleSizes();
+        qDebug() << "Supported Sample Type: "     << deviceInfo.supportedSampleTypes();
+        qDebug() << "Preferred Device settings:"  << deviceInfo.preferredFormat();
+        qDebug() << "----------------------------";
         if(deviceInfo.deviceName() == settings.value("Speakers").toString())
         {
             deviceOutput = deviceInfo;
@@ -66,7 +78,7 @@ void Audio::settingPreferences()
 
     if(deviceOutput.isNull())
     {
-        deviceOutput = QAudioDeviceInfo::defaultInputDevice();
+        deviceOutput = QAudioDeviceInfo::defaultOutputDevice();
     }
 
     AudioInput = new QAudioInput(deviceInput, Format);
@@ -74,10 +86,17 @@ void Audio::settingPreferences()
 
     DeviceOutput = AudioOutput->start();
 
-    iVolume = settings.value("VolumeMicrophone", 99).toInt();
-    AudioOutput->setVolume(settings.value("VolumeSpeakers", 99).toInt());
+    iVolume = settings.value("VolumeMicrophone", 100).toInt();
+    AudioInput->setVolume(settings.value("VolumeMicrophone", 100).toInt() / (qreal)100);
+    AudioOutput->setVolume(settings.value("VolumeSpeakers", 100).toInt() / (qreal) 100);
 
     settings.endGroup();
+}
+
+void Audio::setFriendIpPort(QString ip, QString port)
+{
+    destAddress = QHostAddress(ip);
+    destPort = port;
 }
 
 // удаление шумов из аудио
@@ -92,10 +111,11 @@ void Audio::removeNoise()
 
     if(len > 4096)
         len = 4096;
+
+    QByteArray buffer(4096, 0);
     DeviceInput->read(buffer.data(), len);
 
     short* resultingData = (short*)buffer.data();
-
 
     short *outdata=resultingData;
     outdata[0] = resultingData [0];
@@ -103,7 +123,7 @@ void Audio::removeNoise()
     int iIndex;
     for (iIndex=1; iIndex < len; iIndex++)
     {
-        outdata[iIndex] = 0.333 * resultingData[iIndex] + (1.0 - 0.333) * outdata[iIndex-1];
+        outdata[iIndex] = 0.666 * resultingData[iIndex] + (1.0 - 0.666) * outdata[iIndex-1];
     }
 
     for ( iIndex=0; iIndex < len; iIndex++ )
@@ -116,10 +136,11 @@ void Audio::removeNoise()
 
     QByteArray out((char*)outdata, len);
 
+    DeviceOutput->write((char*)outdata, len);
+
     buff += out;
 
-    socket->write(buff);
-    socket->flush();
+    udpSocket->writeDatagram(buff, destAddress, (uint16_t)destPort.toInt());
 }
 
 // начало записи
@@ -137,19 +158,13 @@ void Audio::stopRecord()
 }
 
 // соединение с аудио сервером
-void Audio::connectServer(QString id, QString identificator)
+void Audio::connectStunServer()
 {
-    idUser = id;
-    identificationNumber = identificator;
+    udpSocket = new QUdpSocket;
+    udpSocket->bind(QHostAddress::Any);
+    connect(udpSocket, SIGNAL(readyRead()), this, SLOT(slotReadyReadUdp()));
 
-    socket = new QTcpSocket;
-    socket->connectToHost("37.230.116.56", 7073);
-
-    connect(socket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
-
-    QTimer::singleShot(2000, [this](){
-        SlotSendToServer("/connect/" + idUser + "!" + identificationNumber);
-    });
+    udpSocket->writeDatagram("/StunRequest/" + sizeof("/StunRequest/"), QHostAddress("185.146.157.27"), 3478);
 }
 
 // обновление настроек
@@ -169,33 +184,33 @@ void Audio::updateSettings()
     isTransmit = temp;
 }
 
-// слот для приема сообщение от сервера
-void Audio::slotReadyRead()
+void Audio::slotReadyReadUdp()
 {
     QByteArray buffer;
-    buffer.resize(socket->size());
+    buffer.resize(udpSocket->pendingDatagramSize());
+    QHostAddress *address = new QHostAddress();
 
-    socket->read(buffer.data(), buffer.size());
+    udpSocket->readDatagram(buffer.data(), buffer.size(), address);
 
-    QDataStream in(buffer);
+    QDataStream in(&buffer, QIODevice::ReadOnly);
 
     QString str;
     in >> str;
 
-    // получение аудио
-    if(buffer.indexOf("/18/") != -1)
+    if(str.indexOf("/StunResponse/") != -1)
+    {
+        str.remove("/StunResponse/");
+        QStringList list = str.split("!");
+
+        ip = list[0];
+        port = list[1];
+
+        sendToServer("/IpPort/" + ip + "!" + port);
+    }
+    else if(buffer.indexOf("/18/") != -1)
     {
         buffer.remove(0, 4);
+
         DeviceOutput->write(buffer);
-    }
-    // выход из комнаты и завершение звонка
-    else if(str.indexOf("/outoftheroom/") != -1)
-    {
-        emit(outOfTheRoom());
-    }
-    // установлено соединение с аудио сервером
-    else if(str.indexOf("/connected/") != -1)
-    {
-        emit(connectedAudio());
     }
 }

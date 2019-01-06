@@ -91,7 +91,7 @@ void Authentication::Connect()
     // если сервер уже запущен перезапустить его
     if(!Socket->isOpen())
     {
-        Socket->connectToHost("37.230.116.56", 7070);
+        Socket->connectToHost("185.146.157.27", 7070);
         connect(Socket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
     }
     QEventLoop loop;

@@ -26,7 +26,6 @@ class MainWindow : public QWidget
 public:
     explicit MainWindow(QTcpSocket* Sock, QString str, Audio* a, WebCam* wb, QWidget *parent = nullptr);
 
-    void SlotSendToServer(QString str);
     void gettingFriends(QString str, QString mode);
     void addRecent(QString id);
     void createSettingRoomWidget();
@@ -45,13 +44,13 @@ signals:
     void output(QByteArray buffer);
     void stopRecord();
     void startRecordVideo();
-    void connectSoundServer(QString idUser, QString identificator);
+    void connectStunServer();
     void updateSettings();
 
 public slots:
     void sendCamera(QByteArray buff);
     void outOfTheRoom();
-    void connectedAudio();
+    void SlotSendToServer(QString str);
 
 private slots:
     void CreateRoom();

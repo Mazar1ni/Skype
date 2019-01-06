@@ -163,19 +163,19 @@ MainWindow::MainWindow(QTcpSocket *Sock, QString str, Audio *a, WebCam *wb, QWid
 
     // отправка сигнала подключения к аудио серверу
     QTimer::singleShot(2000, [this](){
-        connectSoundServer(id, identificationNumber);
+        connectStunServer();
     });
 }
 
 // слот для отправки сообщений серверу
 void MainWindow::SlotSendToServer(QString str)
 {
-    //qDebug() << "send:  " << str;
-
     QByteArray  arrBlock;
 
     QDataStream out(&arrBlock, QIODevice::WriteOnly);
     out << str;
+
+    qDebug() << "main write: " << str;
 
     Socket->write(arrBlock);
     Socket->flush();
@@ -320,7 +320,7 @@ void MainWindow::upCalling(QString name, QString pass)
             return;
         }
     }
-    int pos = name.indexOf("-");
+    int pos = name.indexOf("~");
 
     QString nameFriend = name.left(pos);
 
@@ -815,7 +815,7 @@ void MainWindow::SlotReadyRead()
     QString str;
     in >> str;
 
-    //qDebug() << "read:  " << str;
+    qDebug() << "main read:  " << str;
 
     if(buffer.indexOf("/camera/") != -1)
     {
@@ -1197,15 +1197,18 @@ void MainWindow::SlotReadyRead()
             if(friendW->getId() == list[0])
             {
                 friendW->updateStatus(list[1]);
-                if(friendInf != nullptr && friendInf == friendW)
-                {
-                    dynamic_cast<QLabel*>(mainScreenWithButtons->children().back())->setText(list[1]);
-                }
                 // если друг выщел из сети, но разговор ещё был, завершаем разговор
                 if(friendW->getCallStatus() == true)
                 {
                     clickedFriendWidget(friendW);
                     endCall();
+                }
+                else
+                {
+                    if(friendInf != nullptr && friendInf == friendW)
+                    {
+                        dynamic_cast<QLabel*>(mainScreenWithButtons->children().back())->setText(list[1]);
+                    }
                 }
                 if(friendW->getIsTryingCall() == "true")
                 {
@@ -1338,6 +1341,21 @@ void MainWindow::SlotReadyRead()
     else if(str.indexOf("/Password changed/") != -1)
     {
         QMessageBox::information(NULL,tr("Information"), tr("Password changed!"));
+    }
+    else if(str.indexOf("/friendIpPort/") != -1)
+    {
+        str.remove("/friendIpPort/");
+
+        QStringList list = str.split("!");
+
+        qDebug() << "ip: " << list[0] << " port: " << list[1];
+
+        audio->setFriendIpPort(list[0], list[1]);
+    }
+    else if(str.indexOf("/ConnectedAudio/") != -1)
+    {
+        // аудио сервер подключен
+        isConnectedAudio = true;
     }
     else
     {
@@ -1473,12 +1491,6 @@ void MainWindow::outOfTheRoom()
     // завершаем трансляцию аудио и видео
     QMetaObject::invokeMethod(audio, "stopRecord", Qt::DirectConnection);
     QMetaObject::invokeMethod(webCam, "stopRecord", Qt::DirectConnection);
-}
-
-// аудио сервер подключен
-void MainWindow::connectedAudio()
-{
-    isConnectedAudio = true;
 }
 
 // полная очистка layout'а

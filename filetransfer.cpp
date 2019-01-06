@@ -7,7 +7,7 @@ FileTransfer::FileTransfer(QString id, QString autNum, QString type, QString fil
     : QThread(parent), idUser(id), identificationNumber(autNum), fileName(fileN)
 {
     socket = new QTcpSocket;
-    socket->connectToHost("37.230.116.56", 7071);
+    socket->connectToHost("185.146.157.27", 7071);
 
     connect(socket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 

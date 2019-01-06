@@ -8,7 +8,7 @@ calling::calling(QString name, QString passRoom, MainWindow* parentW) : parent(p
 
     setMinimumSize(500, 70);
 
-    int pos = name.indexOf("-");
+    int pos = name.indexOf("~");
 
     QString nameFriend = name.left(pos);
 
